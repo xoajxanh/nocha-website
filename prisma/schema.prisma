@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  passwordHash String
+  displayName  String
+  phone        String?
+  role         String   @default("STAFF") // "ADMIN" | "STAFF"
+  isLocked     Boolean  @default(false)
+  isDeleted    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  orders       Order[]  @relation("UserOrders")
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String
+  slug        String    @unique
+  description String?   @db.NVarChar(Max)
+  sortOrder   Int       @default(0)
+  isActive    Boolean   @default(true)
+  isDeleted   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  products    Product[]
+}
+
+model Product {
+  id               String      @id @default(uuid())
+  categoryId       String
+  category         Category    @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  name             String
+  description      String?     @db.NVarChar(Max)
+  basePrice        Float       @default(0)
+  imageUrl         String?     @db.NVarChar(Max)
+  sizesJson        String      @default("[{\"name\":\"S\",\"price\":-5000},{\"name\":\"M (500ml)\",\"price\":0},{\"name\":\"L (700ml)\",\"price\":7000}]") @db.NVarChar(Max)
+  sugarOptionsJson String      @default("[\"0%\",\"30%\",\"50%\",\"70%\",\"100%\"]") @db.NVarChar(Max)
+  iceOptionsJson   String      @default("[\"0%\",\"30%\",\"50%\",\"70%\",\"100%\",\"Đá riêng\"]") @db.NVarChar(Max)
+  sortOrder        Int         @default(0)
+  isActive         Boolean     @default(true)
+  isDeleted        Boolean     @default(false)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  orderItems       OrderItem[]
+
+  @@index([categoryId])
+}
+
+model Order {
+  id              String      @id @default(uuid())
+  orderCode       String      @unique
+  customerName    String
+  customerPhone   String
+  shippingAddress String      @db.NVarChar(Max)
+  note            String?     @db.NVarChar(Max)
+  subtotalAmount  Float       @default(0) // Tổng tiền các món sau chiết khấu từng món
+  orderDiscount   Float       @default(0) // Chiết khấu chung cả đơn (VNĐ)
+  netRevenue      Float       @default(0) // Doanh thu thực tế = max(0, subtotalAmount - orderDiscount) (Không bao gồm phí ship)
+  isFreeShip      Boolean     @default(false)
+  shippingFee     Float       @default(0)
+  finalAmount     Float       @default(0) // Tổng tiền thu khách = netRevenue + (isFreeShip ? 0 : shippingFee)
+  status          String      @default("CREATED") // "PENDING" | "CREATED" | "SHIPPING" | "COMPLETED" | "CANCELLED"
+  createdById     String?
+  createdBy       User?       @relation("UserOrders", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  expectedDeliveryAt DateTime?   // Giờ nhận đồ dự kiến
+  shippedAt          DateTime?
+  completedAt        DateTime?
+  cancelledAt        DateTime?
+  items           OrderItem[]
+
+  @@index([createdById])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id             String   @id @default(uuid())
+  orderId        String
+  order          Order    @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  productId      String?
+  product        Product? @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  productName    String
+  productImage   String?  @db.NVarChar(Max)
+  quantity       Int      @default(1)
+  preparedQty    Int      @default(0) // Số lượng cốc đã chuẩn bị/pha chế xong
+  selectedSize   String?
+  sizeExtraPrice Float    @default(0)
+  selectedSugar  String?
+  selectedIce    String?
+  unitPrice      Float    @default(0) // Giá bán tại thời điểm lên đơn (gồm giá gốc + phụ thu size)
+  itemDiscount   Float    @default(0) // Chiết khấu dòng (VNĐ)
+  lineTotal      Float    @default(0) // Thành tiền dòng = max(0, unitPrice * quantity - itemDiscount)
+  note           String?  @db.NVarChar(Max)
+
+  @@index([orderId])
+  @@index([productId])
+}
+
