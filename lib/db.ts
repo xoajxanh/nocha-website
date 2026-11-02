@@ -5,48 +5,16 @@ import { NextRequest } from 'next/server';
 const PRISMA_SCHEMA_VERSION = 'v2_guest_pending';
 const globalForPrisma = global as unknown as {
   prisma: PrismaClient;
-  prismaSchemaVersion?: string;
   seedVersion?: string;
 };
 
-function createPrismaClient(): PrismaClient {
-  if (globalForPrisma.prisma && globalForPrisma.prismaSchemaVersion === PRISMA_SCHEMA_VERSION) {
-    return globalForPrisma.prisma;
-  }
-  try {
-    if (globalForPrisma.prisma) {
-      globalForPrisma.prisma.$disconnect().catch(() => {});
-    }
-    const resolvedDotPrisma = require.resolve('.prisma/client');
-    if (resolvedDotPrisma && require.cache[resolvedDotPrisma]) {
-      delete require.cache[resolvedDotPrisma];
-    }
-    const resolvedPrismaClient = require.resolve('@prisma/client');
-    if (resolvedPrismaClient && require.cache[resolvedPrismaClient]) {
-      delete require.cache[resolvedPrismaClient];
-    }
-    const { PrismaClient: FreshPrismaClient } = require('@prisma/client');
-    const client = new FreshPrismaClient({
-      log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-    });
-    if (process.env.NODE_ENV !== 'production') {
-      globalForPrisma.prisma = client;
-      globalForPrisma.prismaSchemaVersion = PRISMA_SCHEMA_VERSION;
-    }
-    return client;
-  } catch {
-    const client = new PrismaClient({
-      log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-    });
-    if (process.env.NODE_ENV !== 'production') {
-      globalForPrisma.prisma = client;
-      globalForPrisma.prismaSchemaVersion = PRISMA_SCHEMA_VERSION;
-    }
-    return client;
-  }
-}
+export const prisma =
+  globalForPrisma.prisma ||
+  new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+  });
 
-export const prisma = createPrismaClient();
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 export const DEFAULT_SIZES_JSON = JSON.stringify([
   { name: 'S (350ml)', price: -5000 },
