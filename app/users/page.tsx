@@ -406,7 +406,7 @@ export default function UsersPage() {
                       value={username}
                       disabled={Boolean(editingUser)}
                       onChange={(e) => setUsername(e.target.value)}
-                      placeholder="VD: nv3"
+                      placeholder="Nhập tên đăng nhập"
                       className="w-full p-2.5 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-color)] font-semibold disabled:opacity-60"
                       required
                     />
@@ -419,7 +419,7 @@ export default function UsersPage() {
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder="••••••••"
+                        placeholder="Nhập mật khẩu khởi tạo"
                         className="w-full p-2.5 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-color)] font-semibold"
                         required
                       />
@@ -432,7 +432,7 @@ export default function UsersPage() {
                       type="text"
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
-                      placeholder="VD: Nhân viên Pha chế 3"
+                      placeholder="Nhập họ tên / tên hiển thị"
                       className="w-full p-2.5 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-color)] font-semibold"
                       required
                     />
@@ -512,7 +512,7 @@ export default function UsersPage() {
                       type="text"
                       value={newResetPassword}
                       onChange={(e) => setNewResetPassword(e.target.value)}
-                      placeholder="Nhập mật khẩu mới (VD: 123456)"
+                      placeholder="Nhập mật khẩu mới"
                       className="w-full p-2.5 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-color)] font-bold"
                       required
                     />

@@ -85,7 +85,7 @@ export default function LoginPage() {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="admin hoặc nv1"
+                placeholder="Tài khoản đăng nhập"
                 className="w-full pl-10 pr-4 py-3 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-color)] text-sm font-medium focus:outline-none focus:border-matcha-600"
                 required
               />
@@ -102,7 +102,7 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="Mật khẩu"
                 className="w-full pl-10 pr-4 py-3 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-color)] text-sm font-medium focus:outline-none focus:border-matcha-600"
                 required
               />

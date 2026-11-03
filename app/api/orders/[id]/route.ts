@@ -71,9 +71,9 @@ export async function PATCH(
     const body = await req.json();
     const { action } = body;
 
-    // 1. Update prepared quantity of an order item
+    // 1. Update prepared quantity of an order item (or a grouped product's items)
     if (action === 'UPDATE_PREP') {
-      const { itemId, preparedQty, markAll } = body;
+      const { itemId, preparedQty, markAll, groupItemIds, groupAction } = body;
 
       if (markAll) {
         await Promise.all(
@@ -84,6 +84,48 @@ export async function PATCH(
             })
           )
         );
+      } else if (Array.isArray(groupItemIds) && groupItemIds.length > 0 && groupAction) {
+        const groupItems = order.items.filter((it) => groupItemIds.includes(it.id));
+        if (groupItems.length === 0) {
+          return NextResponse.json({ error: 'Không tìm thấy nhóm sản phẩm' }, { status: 404 });
+        }
+
+        if (groupAction === 'MARK_DONE') {
+          await Promise.all(
+            groupItems.map((it) =>
+              prisma.orderItem.update({
+                where: { id: it.id },
+                data: { preparedQty: it.quantity },
+              })
+            )
+          );
+        } else if (groupAction === 'RESET') {
+          await Promise.all(
+            groupItems.map((it) =>
+              prisma.orderItem.update({
+                where: { id: it.id },
+                data: { preparedQty: 0 },
+              })
+            )
+          );
+        } else if (groupAction === 'INCREMENT') {
+          const target = groupItems.find((it) => (it.preparedQty || 0) < it.quantity);
+          if (target) {
+            await prisma.orderItem.update({
+              where: { id: target.id },
+              data: { preparedQty: Math.min(target.quantity, (target.preparedQty || 0) + 1) },
+            });
+          }
+        } else if (groupAction === 'DECREMENT') {
+          const reversed = [...groupItems].reverse();
+          const target = reversed.find((it) => (it.preparedQty || 0) > 0);
+          if (target) {
+            await prisma.orderItem.update({
+              where: { id: target.id },
+              data: { preparedQty: Math.max(0, (target.preparedQty || 0) - 1) },
+            });
+          }
+        }
       } else {
         const targetItem = order.items.find((it) => it.id === itemId);
         if (!targetItem) {

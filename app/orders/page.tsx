@@ -47,6 +47,9 @@ export default function OrdersPage() {
   const [editingTimeOrderId, setEditingTimeOrderId] = useState<string | null>(null);
   const [editingTimeValue, setEditingTimeValue] = useState<string>('');
 
+  // State for switching between 'DETAIL' (theo lượt nhập) and 'GROUPED' (gom theo sản phẩm) inside each order
+  const [orderPrepTabs, setOrderPrepTabs] = useState<Record<string, 'DETAIL' | 'GROUPED'>>({});
+
   const toLocalDateTimeInput = (d: Date) => {
     const pad = (n: number) => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
@@ -176,6 +179,32 @@ export default function OrdersPage() {
         setOrders((prev) => prev.map((o) => (o.id === orderId ? json.order : o)));
       } else {
         setToast({ message: json.error || 'Lỗi cập nhật pha chế', type: 'error' });
+      }
+    } catch {
+      setToast({ message: 'Lỗi kết nối khi cập nhật pha chế', type: 'error' });
+    }
+  };
+
+  const handleUpdateGroupPrep = async (
+    orderId: string,
+    groupItemIds: string[],
+    groupAction: 'INCREMENT' | 'DECREMENT' | 'MARK_DONE' | 'RESET'
+  ) => {
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'UPDATE_PREP',
+          groupItemIds,
+          groupAction,
+        }),
+      });
+      const json = await res.json();
+      if (res.ok && json.order) {
+        setOrders((prev) => prev.map((o) => (o.id === orderId ? json.order : o)));
+      } else {
+        setToast({ message: json.error || 'Lỗi cập nhật pha chế theo món', type: 'error' });
       }
     } catch {
       setToast({ message: 'Lỗi kết nối khi cập nhật pha chế', type: 'error' });
@@ -823,216 +852,457 @@ export default function OrdersPage() {
                     </div>
 
                     {/* EXPANDED DETAILS */}
-                    {isExpanded && (
-                      <div className="border-t border-[var(--border-color)] bg-[var(--bg-subtle)]/40 p-4 sm:px-5 space-y-3">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="text-[11px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">
-                            Danh Sách Món &amp; Đánh Dấu Pha Chế ({preparedCups}/{totalCups} cốc):
+                    {isExpanded && (() => {
+                      const activePrepTab = orderPrepTabs[order.id] || 'DETAIL';
+
+                      // Tự động gom nhóm các dòng theo từng Sản phẩm (productId hoặc productName)
+                      const groupedMap = new Map<
+                        string,
+                        {
+                          key: string;
+                          productName: string;
+                          productImage: string | null;
+                          totalQty: number;
+                          preparedQty: number;
+                          totalLineAmount: number;
+                          itemIds: string[];
+                          subItems: any[];
+                        }
+                      >();
+
+                      for (const it of order.items || []) {
+                        const groupKey =
+                          it.productId || (it.productName || 'Sản phẩm').trim().toLowerCase();
+                        const existing = groupedMap.get(groupKey);
+                        if (existing) {
+                          existing.totalQty += Number(it.quantity) || 0;
+                          existing.preparedQty += Number(it.preparedQty) || 0;
+                          existing.totalLineAmount += Number(it.lineTotal) || 0;
+                          if (it.id) existing.itemIds.push(it.id);
+                          existing.subItems.push(it);
+                        } else {
+                          groupedMap.set(groupKey, {
+                            key: groupKey,
+                            productName: it.productName || 'Sản phẩm',
+                            productImage: it.productImage || null,
+                            totalQty: Number(it.quantity) || 0,
+                            preparedQty: Number(it.preparedQty) || 0,
+                            totalLineAmount: Number(it.lineTotal) || 0,
+                            itemIds: it.id ? [it.id] : [],
+                            subItems: [it],
+                          });
+                        }
+                      }
+
+                      const groupedProducts = Array.from(groupedMap.values());
+
+                      return (
+                        <div className="border-t border-[var(--border-color)] bg-[var(--bg-subtle)]/40 p-4 sm:px-5 space-y-3">
+                          <div className="flex flex-wrap items-center justify-between gap-2.5">
+                            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                              <div className="text-[11px] font-extrabold uppercase tracking-wider text-[var(--text-muted)]">
+                                Danh Sách Món &amp; Đánh Dấu Pha Chế ({preparedCups}/{totalCups} cốc):
+                              </div>
+
+                              {/* 2 TAB CHUYỂN ĐỔI KIỂU VIEW: CHI TIẾT TỪNG DÒNG vs GOM THEO SẢN PHẨM */}
+                              <div className="inline-flex items-center p-1 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)] shadow-sm">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setOrderPrepTabs((prev) => ({
+                                      ...prev,
+                                      [order.id]: 'DETAIL',
+                                    }))
+                                  }
+                                  className={`px-2.5 py-1 rounded-lg text-[11px] font-extrabold transition flex items-center gap-1 ${
+                                    activePrepTab === 'DETAIL'
+                                      ? 'matcha-gradient-btn text-white shadow-sm'
+                                      : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                                  }`}
+                                >
+                                  <span>📋 Chi tiết theo lượt đặt ({(order.items || []).length})</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setOrderPrepTabs((prev) => ({
+                                      ...prev,
+                                      [order.id]: 'GROUPED',
+                                    }))
+                                  }
+                                  className={`px-2.5 py-1 rounded-lg text-[11px] font-extrabold transition flex items-center gap-1 ${
+                                    activePrepTab === 'GROUPED'
+                                      ? 'matcha-gradient-btn text-white shadow-sm'
+                                      : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                                  }`}
+                                >
+                                  <span>🍵 Gom theo món ({groupedProducts.length} món)</span>
+                                </button>
+                              </div>
+                            </div>
+
+                            {!allPrepared && (order.status === 'CREATED' || order.status === 'PENDING') && (
+                              <button
+                                type="button"
+                                onClick={() => handleUpdatePrep(order.id, null, 0, true)}
+                                className="px-3 py-1 rounded-xl matcha-gradient-btn text-white text-xs font-bold shadow-sm"
+                              >
+                                ✓ Đánh dấu pha xong cả đơn
+                              </button>
+                            )}
                           </div>
 
-                          {!allPrepared && (order.status === 'CREATED' || order.status === 'PENDING') && (
-                            <button
-                              type="button"
-                              onClick={() => handleUpdatePrep(order.id, null, 0, true)}
-                              className="px-3 py-1 rounded-xl matcha-gradient-btn text-white text-xs font-bold shadow-sm"
-                            >
-                              ✓ Đánh dấu pha xong cả đơn
-                            </button>
-                          )}
-                        </div>
-
-                        <div className="space-y-2.5">
-                          {(order.items || []).map((item: any, idx: number) => {
-                            const isItemDone = (item.preparedQty || 0) >= item.quantity;
-                            return (
-                              <div
-                                key={item.id || idx}
-                                className={`p-3.5 rounded-2xl border transition flex flex-col md:flex-row md:items-center justify-between gap-3 ${
-                                  isItemDone
-                                    ? 'bg-matcha-500/15 border-matcha-500/40'
-                                    : 'bg-[var(--bg-card)] border-[var(--border-color)]'
-                                }`}
-                              >
-                                <div className="flex items-start gap-3">
-                                  <span
-                                    className={`w-7 h-7 rounded-xl font-black text-xs flex items-center justify-center shrink-0 mt-0.5 ${
+                          {/* ========================================================= */}
+                          {/* TAB 1: VIEW CHI TIẾT THEO LƯỢT ĐẶT (GIỮ NGUYÊN HIỆN TẠI) */}
+                          {/* ========================================================= */}
+                          {activePrepTab === 'DETAIL' ? (
+                            <div className="space-y-2.5">
+                              {(order.items || []).map((item: any, idx: number) => {
+                                const isItemDone = (item.preparedQty || 0) >= item.quantity;
+                                return (
+                                  <div
+                                    key={item.id || idx}
+                                    className={`p-3.5 rounded-2xl border transition flex flex-col md:flex-row md:items-center justify-between gap-3 ${
                                       isItemDone
-                                        ? 'bg-matcha-500 text-white shadow-sm'
-                                        : 'bg-[var(--bg-subtle)] text-[var(--text-main)] border border-[var(--border-color)]'
+                                        ? 'bg-matcha-500/15 border-matcha-500/40'
+                                        : 'bg-[var(--bg-card)] border-[var(--border-color)]'
                                     }`}
                                   >
-                                    {isItemDone ? <Check className="w-4 h-4" /> : `${idx + 1}`}
-                                  </span>
-
-                                  <div className="space-y-1 text-xs">
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <span className="font-black text-sm sm:text-base">
-                                        {item.productName}
+                                    <div className="flex items-start gap-3">
+                                      <span
+                                        className={`w-7 h-7 rounded-xl font-black text-xs flex items-center justify-center shrink-0 mt-0.5 ${
+                                          isItemDone
+                                            ? 'bg-matcha-500 text-white shadow-sm'
+                                            : 'bg-[var(--bg-subtle)] text-[var(--text-main)] border border-[var(--border-color)]'
+                                        }`}
+                                      >
+                                        {isItemDone ? <Check className="w-4 h-4" /> : `${idx + 1}`}
                                       </span>
-                                      <span className="px-2 py-0.5 rounded-lg bg-matcha-600 text-white font-black text-xs">
-                                        x{item.quantity} cốc
-                                      </span>
-                                    </div>
 
-                                    <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-bold">
-                                      {item.selectedSize && (
-                                        <span className="px-2 py-0.5 rounded-md bg-[var(--bg-subtle)] border border-[var(--border-color)]">
-                                          Size: {item.selectedSize}
-                                        </span>
-                                      )}
-                                      {item.selectedSugar && (
-                                        <span className="px-2 py-0.5 rounded-md bg-[var(--bg-subtle)] border border-[var(--border-color)] text-matcha-700 dark:text-matcha-300">
-                                          Đường: {item.selectedSugar}
-                                        </span>
-                                      )}
-                                      {item.selectedIce && (
-                                        <span className="px-2 py-0.5 rounded-md bg-[var(--bg-subtle)] border border-[var(--border-color)] text-sky-600 dark:text-sky-300">
-                                          Đá: {item.selectedIce}
-                                        </span>
-                                      )}
-                                    </div>
+                                      <div className="space-y-1 text-xs">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                          <span className="font-black text-sm sm:text-base">
+                                            {item.productName}
+                                          </span>
+                                          <span className="px-2 py-0.5 rounded-lg bg-matcha-600 text-white font-black text-xs">
+                                            x{item.quantity} cốc
+                                          </span>
+                                        </div>
 
-                                    {item.note && (
-                                      <div className="text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-500/15 px-2.5 py-1 rounded-lg border border-amber-500/30 inline-block">
-                                        📝 Ghi chú món: {item.note}
+                                        <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-bold">
+                                          {item.selectedSize && (
+                                            <span className="px-2 py-0.5 rounded-md bg-[var(--bg-subtle)] border border-[var(--border-color)]">
+                                              Size: {item.selectedSize}
+                                            </span>
+                                          )}
+                                          {item.selectedSugar && (
+                                            <span className="px-2 py-0.5 rounded-md bg-[var(--bg-subtle)] border border-[var(--border-color)] text-matcha-700 dark:text-matcha-300">
+                                              Đường: {item.selectedSugar}
+                                            </span>
+                                          )}
+                                          {item.selectedIce && (
+                                            <span className="px-2 py-0.5 rounded-md bg-[var(--bg-subtle)] border border-[var(--border-color)] text-sky-600 dark:text-sky-300">
+                                              Đá: {item.selectedIce}
+                                            </span>
+                                          )}
+                                        </div>
+
+                                        {item.note && (
+                                          <div className="text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-500/15 px-2.5 py-1 rounded-lg border border-amber-500/30 inline-block">
+                                            📝 Ghi chú món: {item.note}
+                                          </div>
+                                        )}
+
+                                        <div className="text-[11px] text-[var(--text-muted)]">
+                                          Giá lúc bán:{' '}
+                                          <strong>{(item.unitPrice || 0).toLocaleString('vi-VN')}đ</strong>
+                                          {item.itemDiscount > 0 && (
+                                            <span className="text-amber-600 ml-2">
+                                              • Chiết khấu dòng: -
+                                              {item.itemDiscount.toLocaleString('vi-VN')}đ
+                                            </span>
+                                          )}
+                                          <span className="ml-2 font-bold text-[var(--text-main)]">
+                                            • Thành tiền: {(item.lineTotal || 0).toLocaleString('vi-VN')}đ
+                                          </span>
+                                        </div>
                                       </div>
-                                    )}
+                                    </div>
 
-                                    <div className="text-[11px] text-[var(--text-muted)]">
-                                      Giá lúc bán:{' '}
-                                      <strong>{(item.unitPrice || 0).toLocaleString('vi-VN')}đ</strong>
-                                      {item.itemDiscount > 0 && (
-                                        <span className="text-amber-600 ml-2">
-                                          • Chiết khấu dòng: -
-                                          {item.itemDiscount.toLocaleString('vi-VN')}đ
-                                        </span>
-                                      )}
-                                      <span className="ml-2 font-bold text-[var(--text-main)]">
-                                        • Thành tiền: {(item.lineTotal || 0).toLocaleString('vi-VN')}đ
-                                      </span>
+                                    <div className="flex flex-wrap items-center justify-between md:justify-end gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-[var(--border-color)]">
+                                      <div className="text-xs font-bold mr-1">
+                                        Đã chuẩn bị:{' '}
+                                        <span
+                                          className={`text-sm font-black ${
+                                            isItemDone
+                                              ? 'text-matcha-600 dark:text-matcha-400'
+                                              : 'text-amber-500'
+                                          }`}
+                                        >
+                                          {item.preparedQty || 0} / {item.quantity}
+                                        </span>{' '}
+                                        cốc
+                                      </div>
+
+                                      <div className="flex items-center gap-1.5">
+                                        <button
+                                          type="button"
+                                          disabled={(item.preparedQty || 0) <= 0}
+                                          onClick={() =>
+                                            handleUpdatePrep(
+                                              order.id,
+                                              item.id,
+                                              Math.max(0, (item.preparedQty || 0) - 1)
+                                            )
+                                          }
+                                          className="w-8 h-8 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-color)] flex items-center justify-center font-bold hover:opacity-80 disabled:opacity-40"
+                                          title="Giảm 1 cốc"
+                                        >
+                                          <Minus className="w-3.5 h-3.5" />
+                                        </button>
+
+                                        <button
+                                          type="button"
+                                          disabled={isItemDone}
+                                          onClick={() =>
+                                            handleUpdatePrep(
+                                              order.id,
+                                              item.id,
+                                              Math.min(item.quantity, (item.preparedQty || 0) + 1)
+                                            )
+                                          }
+                                          className="px-3 h-8 rounded-xl matcha-gradient-btn text-white text-xs font-bold flex items-center gap-1 disabled:opacity-40"
+                                          title="Đánh dấu xong thêm 1 cốc"
+                                        >
+                                          <Plus className="w-3.5 h-3.5" />
+                                          <span>+1 cốc</span>
+                                        </button>
+
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            handleUpdatePrep(
+                                              order.id,
+                                              item.id,
+                                              isItemDone ? 0 : item.quantity
+                                            )
+                                          }
+                                          className={`px-3 h-8 rounded-xl text-xs font-extrabold flex items-center gap-1 transition ${
+                                            isItemDone
+                                              ? 'bg-emerald-400 text-slate-950 shadow-sm'
+                                              : 'bg-[var(--bg-subtle)] border border-matcha-500 text-matcha-700 dark:text-matcha-300'
+                                          }`}
+                                        >
+                                          <Check className="w-3.5 h-3.5" />
+                                          <span>{isItemDone ? 'Đã xong đủ' : 'Xong đủ'}</span>
+                                        </button>
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            /* ========================================================= */
+                            /* TAB 2: VIEW TỰ GOM THEO MÓN (TỔNG QUAN SỐ LƯỢNG THEO MÓN) */
+                            /* ========================================================= */
+                            <div className="space-y-2.5">
+                              {groupedProducts.map((group, gIdx) => {
+                                const isGroupDone = group.preparedQty >= group.totalQty;
+                                const remainingCups = Math.max(0, group.totalQty - group.preparedQty);
 
-                                <div className="flex flex-wrap items-center justify-between md:justify-end gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-[var(--border-color)]">
-                                  <div className="text-xs font-bold mr-1">
-                                    Đã chuẩn bị:{' '}
-                                    <span
-                                      className={`text-sm font-black ${
-                                        isItemDone
-                                          ? 'text-matcha-600 dark:text-matcha-400'
-                                          : 'text-amber-500'
-                                      }`}
-                                    >
-                                      {item.preparedQty || 0} / {item.quantity}
-                                    </span>{' '}
-                                    cốc
+                                return (
+                                  <div
+                                    key={group.key}
+                                    className={`p-3.5 rounded-2xl border transition flex flex-col md:flex-row md:items-center justify-between gap-3 ${
+                                      isGroupDone
+                                        ? 'bg-matcha-500/15 border-matcha-500/40'
+                                        : 'bg-[var(--bg-card)] border-[var(--border-color)]'
+                                    }`}
+                                  >
+                                    <div className="flex items-start gap-3">
+                                      <span
+                                        className={`w-7 h-7 rounded-xl font-black text-xs flex items-center justify-center shrink-0 mt-0.5 ${
+                                          isGroupDone
+                                            ? 'bg-matcha-500 text-white shadow-sm'
+                                            : 'bg-[var(--bg-subtle)] text-[var(--text-main)] border border-[var(--border-color)]'
+                                        }`}
+                                      >
+                                        {isGroupDone ? <Check className="w-4 h-4" /> : `${gIdx + 1}`}
+                                      </span>
+
+                                      <div className="space-y-1.5 text-xs">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                          <span className="font-black text-sm sm:text-base">
+                                            {group.productName}
+                                          </span>
+                                          <span className="px-2.5 py-0.5 rounded-lg bg-matcha-600 text-white font-black text-xs">
+                                            Tổng: {group.totalQty} cốc
+                                          </span>
+                                          {isGroupDone ? (
+                                            <span className="px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-black text-[11px]">
+                                              ✓ Đã đủ {group.totalQty}/{group.totalQty} cốc
+                                            </span>
+                                          ) : (
+                                            <span className="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-300 font-black text-[11px]">
+                                              Còn thiếu {remainingCups} cốc
+                                            </span>
+                                          )}
+                                        </div>
+
+                                        {/* Tóm tắt các lượt đặt bên trong nhóm sản phẩm này để pha chế dễ đối chiếu */}
+                                        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                                          {group.subItems.map((sub: any, sIdx: number) => {
+                                            const subDone = (sub.preparedQty || 0) >= sub.quantity;
+                                            return (
+                                              <span
+                                                key={sub.id || sIdx}
+                                                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold border ${
+                                                  subDone
+                                                    ? 'bg-matcha-500/15 border-matcha-500/40 text-matcha-800 dark:text-matcha-200'
+                                                    : 'bg-[var(--bg-subtle)] border-[var(--border-color)] text-[var(--text-main)]'
+                                                }`}
+                                              >
+                                                <strong className="text-matcha-700 dark:text-matcha-300">
+                                                  {sub.quantity} cốc
+                                                </strong>
+                                                <span className="text-[var(--text-muted)]">
+                                                  ({sub.selectedSize || 'M'} • Đ:{sub.selectedSugar || '100%'} •{' '}
+                                                  {sub.selectedIce || '100% đá'})
+                                                </span>
+                                                {sub.note && (
+                                                  <span className="text-amber-700 dark:text-amber-300 font-extrabold">
+                                                    [📝 {sub.note}]
+                                                  </span>
+                                                )}
+                                              </span>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <div className="flex flex-wrap items-center justify-between md:justify-end gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-[var(--border-color)]">
+                                      <div className="text-xs font-bold mr-1">
+                                        Đã chuẩn bị:{' '}
+                                        <span
+                                          className={`text-sm font-black ${
+                                            isGroupDone
+                                              ? 'text-matcha-600 dark:text-matcha-400'
+                                              : 'text-amber-500'
+                                          }`}
+                                        >
+                                          {group.preparedQty} / {group.totalQty}
+                                        </span>{' '}
+                                        cốc
+                                      </div>
+
+                                      <div className="flex items-center gap-1.5">
+                                        <button
+                                          type="button"
+                                          disabled={group.preparedQty <= 0}
+                                          onClick={() =>
+                                            handleUpdateGroupPrep(
+                                              order.id,
+                                              group.itemIds,
+                                              'DECREMENT'
+                                            )
+                                          }
+                                          className="w-8 h-8 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-color)] flex items-center justify-center font-bold hover:opacity-80 disabled:opacity-40"
+                                          title="Giảm 1 cốc của món này"
+                                        >
+                                          <Minus className="w-3.5 h-3.5" />
+                                        </button>
+
+                                        <button
+                                          type="button"
+                                          disabled={isGroupDone}
+                                          onClick={() =>
+                                            handleUpdateGroupPrep(
+                                              order.id,
+                                              group.itemIds,
+                                              'INCREMENT'
+                                            )
+                                          }
+                                          className="px-3 h-8 rounded-xl matcha-gradient-btn text-white text-xs font-bold flex items-center gap-1 disabled:opacity-40"
+                                          title="Đánh dấu xong thêm 1 cốc của món này"
+                                        >
+                                          <Plus className="w-3.5 h-3.5" />
+                                          <span>+1 cốc</span>
+                                        </button>
+
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            handleUpdateGroupPrep(
+                                              order.id,
+                                              group.itemIds,
+                                              isGroupDone ? 'RESET' : 'MARK_DONE'
+                                            )
+                                          }
+                                          className={`px-3 h-8 rounded-xl text-xs font-extrabold flex items-center gap-1 transition ${
+                                            isGroupDone
+                                              ? 'bg-emerald-400 text-slate-950 shadow-sm'
+                                              : 'bg-[var(--bg-subtle)] border border-matcha-500 text-matcha-700 dark:text-matcha-300'
+                                          }`}
+                                        >
+                                          <Check className="w-3.5 h-3.5" />
+                                          <span>{isGroupDone ? 'Đã xong đủ' : 'Xong đủ'}</span>
+                                        </button>
+                                      </div>
+                                    </div>
                                   </div>
+                                );
+                              })}
+                            </div>
+                          )}
 
-                                  <div className="flex items-center gap-1.5">
-                                    <button
-                                      type="button"
-                                      disabled={(item.preparedQty || 0) <= 0}
-                                      onClick={() =>
-                                        handleUpdatePrep(
-                                          order.id,
-                                          item.id,
-                                          Math.max(0, (item.preparedQty || 0) - 1)
-                                        )
-                                      }
-                                      className="w-8 h-8 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-color)] flex items-center justify-center font-bold hover:opacity-80 disabled:opacity-40"
-                                      title="Giảm 1 cốc"
-                                    >
-                                      <Minus className="w-3.5 h-3.5" />
-                                    </button>
-
-                                    <button
-                                      type="button"
-                                      disabled={isItemDone}
-                                      onClick={() =>
-                                        handleUpdatePrep(
-                                          order.id,
-                                          item.id,
-                                          Math.min(item.quantity, (item.preparedQty || 0) + 1)
-                                        )
-                                      }
-                                      className="px-3 h-8 rounded-xl matcha-gradient-btn text-white text-xs font-bold flex items-center gap-1 disabled:opacity-40"
-                                      title="Đánh dấu xong thêm 1 cốc"
-                                    >
-                                      <Plus className="w-3.5 h-3.5" />
-                                      <span>+1 cốc</span>
-                                    </button>
-
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        handleUpdatePrep(
-                                          order.id,
-                                          item.id,
-                                          isItemDone ? 0 : item.quantity
-                                        )
-                                      }
-                                      className={`px-3 h-8 rounded-xl text-xs font-extrabold flex items-center gap-1 transition ${
-                                        isItemDone
-                                          ? 'bg-emerald-400 text-slate-950 shadow-sm'
-                                          : 'bg-[var(--bg-subtle)] border border-matcha-500 text-matcha-700 dark:text-matcha-300'
-                                      }`}
-                                    >
-                                      <Check className="w-3.5 h-3.5" />
-                                      <span>{isItemDone ? 'Đã xong đủ' : 'Xong đủ'}</span>
-                                    </button>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        <div className="pt-2 border-t border-[var(--border-color)] flex flex-wrap items-center justify-between gap-3 text-xs">
-                          <div className="flex flex-wrap items-center gap-4">
-                            <span>
-                              Tạm tính món:{' '}
-                              <strong>{(order.subtotalAmount || 0).toLocaleString('vi-VN')}đ</strong>
-                            </span>
-                            {order.orderDiscount > 0 && (
+                          <div className="pt-2 border-t border-[var(--border-color)] flex flex-wrap items-center justify-between gap-3 text-xs">
+                            <div className="flex flex-wrap items-center gap-4">
                               <span>
-                                Chiết khấu đơn:{' '}
-                                <strong className="text-amber-500">
-                                  -{(order.orderDiscount || 0).toLocaleString('vi-VN')}đ
+                                Tạm tính món:{' '}
+                                <strong>{(order.subtotalAmount || 0).toLocaleString('vi-VN')}đ</strong>
+                              </span>
+                              {order.orderDiscount > 0 && (
+                                <span>
+                                  Chiết khấu đơn:{' '}
+                                  <strong className="text-amber-500">
+                                    -{(order.orderDiscount || 0).toLocaleString('vi-VN')}đ
+                                  </strong>
+                                </span>
+                              )}
+                              <span>
+                                Doanh thu thuần (không ship):{' '}
+                                <strong className="text-matcha-600 dark:text-matcha-400">
+                                  {(order.netRevenue || 0).toLocaleString('vi-VN')}đ
                                 </strong>
                               </span>
-                            )}
-                            <span>
-                              Doanh thu thuần (không ship):{' '}
-                              <strong className="text-matcha-600 dark:text-matcha-400">
-                                {(order.netRevenue || 0).toLocaleString('vi-VN')}đ
-                              </strong>
-                            </span>
-                            <span>
-                              Phí ship:{' '}
-                              <strong>
-                                {order.isFreeShip
-                                  ? 'Freeship (0đ)'
-                                  : `${(order.shippingFee || 0).toLocaleString('vi-VN')}đ`}
-                              </strong>
-                            </span>
-                            <span>
-                              Phụ trách:{' '}
-                              <strong>
-                                {order.createdBy?.displayName || 'Khách đặt Web (Chờ nhận)'}
-                              </strong>
-                            </span>
-                          </div>
+                              <span>
+                                Phí ship:{' '}
+                                <strong>
+                                  {order.isFreeShip
+                                    ? 'Freeship (0đ)'
+                                    : `${(order.shippingFee || 0).toLocaleString('vi-VN')}đ`}
+                                </strong>
+                              </span>
+                              <span>
+                                Phụ trách:{' '}
+                                <strong>
+                                  {order.createdBy?.displayName || 'Khách đặt Web (Chờ nhận)'}
+                                </strong>
+                              </span>
+                            </div>
 
-                          <a
-                            href={`tel:${order.customerPhone}`}
-                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-matcha-500/15 text-matcha-700 dark:text-matcha-300 font-bold"
-                          >
-                            <Phone className="w-3.5 h-3.5" /> Gọi khách: {order.customerPhone}
-                          </a>
+                            <a
+                              href={`tel:${order.customerPhone}`}
+                              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-matcha-500/15 text-matcha-700 dark:text-matcha-300 font-bold"
+                            >
+                              <Phone className="w-3.5 h-3.5" /> Gọi khách: {order.customerPhone}
+                            </a>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
                   </div>
                 );
               })
