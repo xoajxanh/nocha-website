@@ -178,7 +178,7 @@ export default function InventoryCategoriesPage() {
                   </thead>
                   <tbody className="divide-y divide-[var(--border-color)]">
                     {categories.map((cat) => (
-                      <tr key={cat.id} className="hover:bg-[var(--bg-subtle)]/50 transition">
+                      <tr key={cat.id} className="hover:bg-[var(--bg-subtle)] transition">
                         <td className="py-3.5 px-4 font-mono font-bold">{cat.sortOrder}</td>
                         <td className="py-3.5 px-4 font-extrabold text-sm text-matcha-900 dark:text-matcha-100">
                           {cat.name}

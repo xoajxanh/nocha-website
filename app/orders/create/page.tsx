@@ -435,12 +435,14 @@ export default function CreateOrderPage() {
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex items-center gap-2.5">
-                              <span className="w-6 h-6 rounded-full bg-matcha-700 text-white font-bold text-[11px] flex items-center justify-center shrink-0">
-                                {index + 1}
-                              </span>
+                              <img
+                                src={item.productImage || '/images/products/matcha-latte.jpg'}
+                                alt={item.productName}
+                                className="w-10 h-10 rounded-xl object-cover border border-[var(--border-color)] bg-white shrink-0"
+                              />
                               <div>
                                 <div className="font-extrabold text-sm text-matcha-900 dark:text-matcha-100">
-                                  {item.productName}
+                                  {index + 1}. {item.productName}
                                 </div>
                                 <div className="text-[11px] text-matcha-700 dark:text-matcha-300 font-semibold">
                                   Size: {item.selectedSize} • Đường: {item.selectedSugar} • Đá:{' '}

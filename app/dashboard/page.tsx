@@ -1513,7 +1513,7 @@ export default function DashboardPage() {
                           );
 
                           return (
-                            <tr key={it.itemId || idx} className="hover:bg-[var(--bg-subtle)]/50">
+                            <tr key={it.itemId || idx} className="hover:bg-[var(--bg-subtle)]">
                               <td className="py-3.5 px-4">
                                 <span
                                   className={`w-6 h-6 rounded-full font-black text-[11px] flex items-center justify-center ${

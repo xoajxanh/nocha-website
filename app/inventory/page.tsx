@@ -448,7 +448,7 @@ export default function InventoryEntriesPage() {
                 <label className="block font-bold mb-1 text-[var(--text-muted)]">
                   Tổng Tiền Tạm Tính (VNĐ)
                 </label>
-                <div className="w-full p-2.5 rounded-xl bg-[var(--bg-subtle)]/70 border border-[var(--border-color)] font-extrabold text-[var(--text-muted)]">
+                <div className="w-full p-2.5 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-color)] font-extrabold text-[var(--text-muted)]">
                   {calculatedAmount.toLocaleString('vi-VN')} đ
                 </div>
               </div>
@@ -629,7 +629,7 @@ export default function InventoryEntriesPage() {
                     {entries.map((en) => {
                       const isDiff = en.adjustedAmount !== en.calculatedAmount;
                       return (
-                        <tr key={en.id} className="hover:bg-[var(--bg-subtle)]/50 transition">
+                        <tr key={en.id} className="hover:bg-[var(--bg-subtle)] transition">
                           <td className="py-3.5 px-3.5 font-mono font-bold text-matcha-700 dark:text-matcha-300 whitespace-nowrap">
                             {en.entryCode}
                           </td>
