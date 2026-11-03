@@ -78,6 +78,9 @@ export default function CreateOrderPage() {
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [shippingAddress, setShippingAddress] = useState('');
+  const [customCreatedAtInput, setCustomCreatedAtInput] = useState<string>(() =>
+    toLocalDateTimeInput(new Date())
+  );
   const [expectedDeliveryInput, setExpectedDeliveryInput] = useState<string>(() =>
     toLocalDateTimeInput(new Date(Date.now() + 20 * 60 * 1000))
   );
@@ -85,6 +88,13 @@ export default function CreateOrderPage() {
   const [orderDiscount, setOrderDiscount] = useState<number>(0);
   const [isFreeShip, setIsFreeShip] = useState<boolean>(true);
   const [shippingFee, setShippingFee] = useState<number>(0);
+
+  const setQuickCreatedDaysAgo = (daysAgo: number) => {
+    const dt = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
+    setCustomCreatedAtInput(toLocalDateTimeInput(dt));
+    // Đồng bộ luôn giờ nhận dự kiến = giờ tạo đơn + 20 phút khi nhập bù đơn cũ
+    setExpectedDeliveryInput(toLocalDateTimeInput(new Date(dt.getTime() + 20 * 60 * 1000)));
+  };
 
   const setQuickDeliveryMinutes = (minutesFromNow: number) => {
     setExpectedDeliveryInput(
@@ -249,6 +259,9 @@ export default function CreateOrderPage() {
           customerName,
           customerPhone,
           shippingAddress,
+          ...(user?.role === 'ADMIN' && customCreatedAtInput
+            ? { customCreatedAt: new Date(customCreatedAtInput).toISOString() }
+            : {}),
           expectedDeliveryAt: expectedDeliveryInput
             ? new Date(expectedDeliveryInput).toISOString()
             : new Date(Date.now() + 20 * 60 * 1000).toISOString(),
@@ -362,11 +375,11 @@ export default function CreateOrderPage() {
                       className="nocha-card p-3 text-left flex flex-col justify-between hover:border-matcha-500 hover:shadow-md transition group"
                     >
                       <div>
-                        <div className="aspect-square rounded-xl overflow-hidden bg-[#f8f5ec] dark:bg-[#17261b] mb-2.5 relative">
+                        <div className="h-36 sm:h-40 rounded-xl overflow-hidden bg-[#fbf8f1] dark:bg-[#17261b] mb-2.5 relative flex items-center justify-center p-3">
                           <img
                             src={prod.imageUrl || '/images/products/matcha-latte.jpg'}
                             alt={prod.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                            className="max-h-full max-w-[78%] w-auto h-auto object-contain rounded-lg group-hover:scale-105 transition duration-300"
                           />
                           <span className="absolute bottom-2 right-2 w-7 h-7 rounded-full bg-matcha-700 text-white flex items-center justify-center shadow">
                             <Plus className="w-4 h-4" />
@@ -691,6 +704,42 @@ export default function CreateOrderPage() {
                       />
                     </div>
                   </div>
+
+                  {/* Ngày Tạo Đơn (Chỉ hiển thị cho Admin để kế toán/quản trị nhập bù đơn từ hôm trước) */}
+                  {user?.role === 'ADMIN' && (
+                    <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-2">
+                      <div className="flex flex-wrap items-center justify-between gap-1.5">
+                        <label className="block font-extrabold text-amber-700 dark:text-amber-300">
+                          📅 Ngày &amp; Giờ Tạo Đơn (Quyền Admin nhập bù)
+                        </label>
+                        <div className="flex items-center gap-1">
+                          {[
+                            { label: 'Hôm nay', days: 0 },
+                            { label: 'Hôm qua (-1 ngày)', days: 1 },
+                            { label: 'Hôm kia (-2 ngày)', days: 2 },
+                          ].map((dOpt) => (
+                            <button
+                              key={dOpt.days}
+                              type="button"
+                              onClick={() => setQuickCreatedDaysAgo(dOpt.days)}
+                              className="px-2 py-0.5 rounded-lg bg-[var(--bg-card)] hover:bg-amber-500/20 text-[10px] font-bold text-amber-700 dark:text-amber-300 border border-amber-500/30 transition"
+                            >
+                              {dOpt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="relative">
+                        <Clock className="w-4 h-4 text-amber-600 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="datetime-local"
+                          value={customCreatedAtInput}
+                          onChange={(e) => setCustomCreatedAtInput(e.target.value)}
+                          className="w-full pl-9 pr-3 py-2 rounded-xl bg-[var(--bg-card)] border border-amber-500/40 font-bold focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   <div>
                     <label className="block font-bold mb-1">

@@ -127,15 +127,167 @@ export async function PATCH(
       return NextResponse.json({ success: true, order: withExpected || updatedOrder });
     }
 
+    // 1c. Admin Full Edit Order (Sửa thông tin đơn, sửa từng item trong đơn, trạng thái, chiết khấu, phí ship)
+    if (action === 'ADMIN_EDIT_ORDER') {
+      if (session.role !== 'ADMIN') {
+        return NextResponse.json(
+          { error: 'Chỉ Admin mới có quyền chỉnh sửa chi tiết đơn hàng' },
+          { status: 403 }
+        );
+      }
+
+      const {
+        customerName,
+        customerPhone,
+        shippingAddress,
+        note,
+        customCreatedAt,
+        expectedDeliveryAt,
+        orderDiscount,
+        isFreeShip,
+        shippingFee,
+        status: nextStatus,
+        items,
+      } = body;
+
+      if (!customerName?.trim() || !customerPhone?.trim() || !shippingAddress?.trim()) {
+        return NextResponse.json(
+          { error: 'Vui lòng nhập đầy đủ Tên người nhận, SĐT và Địa chỉ giao hàng' },
+          { status: 400 }
+        );
+      }
+
+      if (!Array.isArray(items) || items.length === 0) {
+        return NextResponse.json(
+          { error: 'Đơn hàng phải có ít nhất 1 món' },
+          { status: 400 }
+        );
+      }
+
+      const formattedItems = items.map((item: any) => {
+        const quantity = Math.max(1, Number(item.quantity) || 1);
+        const preparedQty = Math.max(
+          0,
+          Math.min(quantity, Number(item.preparedQty) || 0)
+        );
+        const unitPrice = Math.max(0, Number(item.unitPrice) || 0);
+        const itemDiscount = Math.max(0, Number(item.itemDiscount) || 0);
+        const lineTotal = Math.max(0, unitPrice * quantity - itemDiscount);
+
+        return {
+          productId: item.productId || null,
+          productName: String(item.productName || 'Sản phẩm').trim(),
+          productImage: item.productImage || null,
+          quantity,
+          preparedQty,
+          selectedSize: item.selectedSize || 'M (500ml)',
+          sizeExtraPrice: Number(item.sizeExtraPrice) || 0,
+          selectedSugar: item.selectedSugar || '100%',
+          selectedIce: item.selectedIce || '100% đá',
+          unitPrice,
+          itemDiscount,
+          lineTotal,
+          note: item.note?.trim() || null,
+        };
+      });
+
+      const subtotalAmount = formattedItems.reduce(
+        (sum: number, it: any) => sum + it.lineTotal,
+        0
+      );
+      const cleanOrderDiscount = Math.max(0, Number(orderDiscount) || 0);
+      const netRevenue = Math.max(0, subtotalAmount - cleanOrderDiscount);
+      const freeShip = Boolean(isFreeShip);
+      const cleanShippingFee = freeShip ? 0 : Math.max(0, Number(shippingFee) || 0);
+      const finalAmount = netRevenue + cleanShippingFee;
+
+      const validStatuses = ['PENDING', 'CREATED', 'SHIPPING', 'COMPLETED', 'CANCELLED'];
+      const finalStatus =
+        nextStatus && validStatuses.includes(nextStatus) ? nextStatus : order.status;
+
+      let parsedCreatedAt: Date | undefined = undefined;
+      if (customCreatedAt) {
+        const dt = new Date(customCreatedAt);
+        if (!isNaN(dt.getTime())) {
+          parsedCreatedAt = dt;
+        }
+      }
+
+      // Replace order items and update order metadata in a transaction
+      await prisma.orderItem.deleteMany({ where: { orderId: params.id } });
+
+      const updatedOrder = await prisma.order.update({
+        where: { id: params.id },
+        data: {
+          customerName: customerName.trim(),
+          customerPhone: customerPhone.trim(),
+          shippingAddress: shippingAddress.trim(),
+          note: note?.trim() || null,
+          subtotalAmount,
+          orderDiscount: cleanOrderDiscount,
+          netRevenue,
+          isFreeShip: freeShip,
+          shippingFee: cleanShippingFee,
+          finalAmount,
+          status: finalStatus,
+          ...(parsedCreatedAt ? { createdAt: parsedCreatedAt } : {}),
+          ...(order.status === 'PENDING' && finalStatus === 'CREATED'
+            ? { createdById: session.userId }
+            : {}),
+          ...(finalStatus === 'SHIPPING' && !order.shippedAt ? { shippedAt: new Date() } : {}),
+          ...(finalStatus === 'COMPLETED' && !order.completedAt
+            ? { completedAt: new Date() }
+            : {}),
+          ...(finalStatus === 'CANCELLED' && !order.cancelledAt
+            ? { cancelledAt: new Date() }
+            : {}),
+          items: {
+            create: formattedItems,
+          },
+        },
+        include: {
+          createdBy: { select: { id: true, username: true, displayName: true, role: true } },
+          items: true,
+        },
+      });
+
+      if (expectedDeliveryAt !== undefined) {
+        await setOrderExpectedDelivery(params.id, expectedDeliveryAt);
+      }
+
+      const [withExpected] = await attachExpectedDeliveryToOrders([updatedOrder]);
+      return NextResponse.json({ success: true, order: withExpected });
+    }
+
     // 2. Transition Order Status:
     // PENDING (Chờ xác nhận) -> CREATED (Nhận Đơn) hoặc CANCELLED (Hủy đơn)
-    // CREATED (Đã tạo đơn) -> SHIPPING (Đi Đơn)
+    // CREATED (Đã tạo đơn) -> SHIPPING (Đi Đơn) hoặc CANCELLED (Admin hủy)
     // SHIPPING (Đang vận chuyển) -> COMPLETED (Đã Nhận Tiền) hoặc CANCELLED (Hoàn Đơn)
     if (action === 'UPDATE_STATUS') {
       const { newStatus, expectedDeliveryAt } = body;
 
       if (expectedDeliveryAt !== undefined) {
         await setOrderExpectedDelivery(params.id, expectedDeliveryAt);
+      }
+
+      // Admin có quyền xác nhận (CREATED) hoặc hủy (CANCELLED) đơn ở bất kỳ bước nào
+      if (session.role === 'ADMIN' && (newStatus === 'CREATED' || newStatus === 'CANCELLED')) {
+        const updatedOrder = await prisma.order.update({
+          where: { id: params.id },
+          data: {
+            status: newStatus,
+            ...(order.status === 'PENDING' && newStatus === 'CREATED'
+              ? { createdById: session.userId }
+              : {}),
+            ...(newStatus === 'CANCELLED' ? { cancelledAt: new Date() } : {}),
+          },
+          include: {
+            createdBy: { select: { id: true, username: true, displayName: true, role: true } },
+            items: true,
+          },
+        });
+        const [withExpected] = await attachExpectedDeliveryToOrders([updatedOrder]);
+        return NextResponse.json({ success: true, order: withExpected });
       }
 
       // Bước 0: Đơn khách vãng lai đặt (PENDING - Chờ xác nhận)

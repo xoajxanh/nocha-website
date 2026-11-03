@@ -149,6 +149,7 @@ export async function POST(req: NextRequest) {
       customerPhone,
       shippingAddress,
       note,
+      customCreatedAt,
       expectedDeliveryAt,
       orderDiscount,
       isFreeShip,
@@ -201,9 +202,16 @@ export async function POST(req: NextRequest) {
     const finalAmount = netRevenue + cleanShippingFee;
 
     const count = await prisma.order.count();
-    const now = new Date();
-    const datePart = `${String(now.getDate()).padStart(2, '0')}${String(
-      now.getMonth() + 1
+    let orderCreatedAt = new Date();
+    if (session.role === 'ADMIN' && customCreatedAt) {
+      const parsedCreated = new Date(customCreatedAt);
+      if (!isNaN(parsedCreated.getTime())) {
+        orderCreatedAt = parsedCreated;
+      }
+    }
+
+    const datePart = `${String(orderCreatedAt.getDate()).padStart(2, '0')}${String(
+      orderCreatedAt.getMonth() + 1
     ).padStart(2, '0')}`;
     let orderCode = `NC-${datePart}-${String(count + 1).padStart(3, '0')}`;
     const existingCode = await prisma.order.findUnique({ where: { orderCode } });
@@ -229,6 +237,7 @@ export async function POST(req: NextRequest) {
         finalAmount,
         status: 'CREATED',
         createdById: session.userId,
+        createdAt: orderCreatedAt,
         items: {
           create: formattedItems,
         },

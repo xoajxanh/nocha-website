@@ -225,15 +225,17 @@ export default function DashboardPage() {
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         <Navbar user={user} />
 
-        <main className="p-4 sm:p-6 lg:p-8 space-y-6 flex-1 overflow-y-auto">
+        <main className="p-4 sm:p-6 lg:p-8 space-y-6 flex-1 overflow-y-auto overflow-x-hidden">
           {/* Top Action & Global Filter Bar */}
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div>
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 min-w-0">
+            <div className="min-w-0">
               <h1 className="text-xl sm:text-2xl font-black text-matcha-900 dark:text-matcha-100 flex items-center gap-2">
-                <Leaf className="w-6 h-6 text-matcha-600" />
-                {user.role === 'ADMIN'
-                  ? 'Dashboard Quản Trị Doanh Thu NOCHA'
-                  : `Dashboard Cá Nhân — ${user.displayName}`}
+                <Leaf className="w-6 h-6 text-matcha-600 shrink-0" />
+                <span className="truncate">
+                  {user.role === 'ADMIN'
+                    ? 'Dashboard Quản Trị Doanh Thu NOCHA'
+                    : `Dashboard Cá Nhân — ${user.displayName}`}
+                </span>
               </h1>
               <p className="text-xs text-[var(--text-muted)] mt-1">
                 {user.role === 'ADMIN'
@@ -242,22 +244,24 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 w-full lg:w-auto min-w-0">
               {user.role === 'ADMIN' && staffList.length > 0 && (
-                <div className="flex items-center gap-2 nocha-card px-3.5 py-2">
-                  <Users className="w-4 h-4 text-matcha-600 shrink-0" />
-                  <span className="text-xs font-bold text-[var(--text-muted)] whitespace-nowrap">
-                    Đồng bộ Nhân viên:
-                  </span>
+                <div className="flex items-center justify-between sm:justify-start gap-2 nocha-card px-3 py-2 w-full sm:w-auto min-w-0">
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Users className="w-4 h-4 text-matcha-600 shrink-0" />
+                    <span className="text-xs font-bold text-[var(--text-muted)] whitespace-nowrap">
+                      Đồng bộ NV:
+                    </span>
+                  </div>
                   <select
                     value={globalStaffId}
                     onChange={(e) => handleGlobalStaffChange(e.target.value)}
-                    className="bg-[var(--bg-subtle)] text-[var(--text-main)] text-xs font-bold rounded-lg px-2.5 py-1.5 border border-[var(--border-color)] focus:outline-none focus:border-matcha-600 cursor-pointer"
+                    className="flex-1 sm:flex-initial min-w-0 max-w-[175px] sm:max-w-[190px] truncate bg-[var(--bg-subtle)] text-[var(--text-main)] text-xs font-bold rounded-lg px-2.5 py-1.5 border border-[var(--border-color)] focus:outline-none focus:border-matcha-600 cursor-pointer"
                   >
                     <option value="ALL">Tất cả nhân viên</option>
                     {staffList.map((s) => (
                       <option key={s.id} value={s.id}>
-                        {s.displayName} (@{s.username})
+                        {s.displayName}
                       </option>
                     ))}
                   </select>
@@ -266,9 +270,9 @@ export default function DashboardPage() {
 
               <Link
                 href="/orders/create"
-                className="px-5 py-2.5 rounded-xl matcha-gradient-btn font-bold text-xs sm:text-sm shadow-md flex items-center gap-2"
+                className="px-4 sm:px-5 py-2.5 rounded-xl matcha-gradient-btn font-bold text-xs sm:text-sm shadow-md flex items-center justify-center gap-2 w-full sm:w-auto shrink-0"
               >
-                <PlusCircle className="w-4 h-4" />
+                <PlusCircle className="w-4 h-4 shrink-0" />
                 <span>TẠO ĐƠN MỚI</span>
               </Link>
             </div>
@@ -324,7 +328,7 @@ export default function DashboardPage() {
                     <select
                       value={revStaffId}
                       onChange={(e) => setRevStaffId(e.target.value)}
-                      className="w-full px-2.5 py-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-color)] font-semibold text-xs"
+                      className="w-full min-w-0 truncate px-2.5 py-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-color)] font-semibold text-xs"
                     >
                       <option value="ALL">Tất cả nhân viên</option>
                       {staffList.map((s) => (
@@ -423,7 +427,7 @@ export default function DashboardPage() {
                     <select
                       value={ordStaffId}
                       onChange={(e) => setOrdStaffId(e.target.value)}
-                      className="w-full px-2.5 py-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-color)] font-semibold text-xs"
+                      className="w-full min-w-0 truncate px-2.5 py-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-color)] font-semibold text-xs"
                     >
                       <option value="ALL">Tất cả nhân viên</option>
                       {staffList.map((s) => (
@@ -497,7 +501,7 @@ export default function DashboardPage() {
                 <select
                   value={chartYear}
                   onChange={(e) => setChartYear(Number(e.target.value))}
-                  className="px-3 py-1.5 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-color)] font-bold"
+                  className="px-3 py-1.5 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-color)] font-bold text-xs shrink-0"
                 >
                   {[defaultDates.year - 1, defaultDates.year, defaultDates.year + 1].map((yr) => (
                     <option key={yr} value={yr}>
@@ -511,7 +515,7 @@ export default function DashboardPage() {
                   <select
                     value={chartStaffId}
                     onChange={(e) => setChartStaffId(e.target.value)}
-                    className="px-3 py-1.5 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-color)] font-bold"
+                    className="flex-1 sm:flex-initial min-w-0 max-w-[175px] sm:max-w-[200px] truncate px-3 py-1.5 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-color)] font-bold text-xs"
                   >
                     <option value="ALL">Tất cả nhân viên</option>
                     {staffList.map((s) => (
@@ -620,26 +624,26 @@ export default function DashboardPage() {
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2.5 text-xs">
-                <div className="flex items-center gap-1.5 bg-[var(--bg-subtle)] px-3 py-1.5 rounded-xl border border-[var(--border-color)]">
-                  <Calendar className="w-3.5 h-3.5 text-matcha-600" />
-                  <span className="text-[var(--text-muted)] font-semibold">Từ:</span>
+              <div className="flex flex-wrap items-center gap-2.5 text-xs min-w-0">
+                <div className="flex items-center gap-1.5 bg-[var(--bg-subtle)] px-3 py-1.5 rounded-xl border border-[var(--border-color)] min-w-0">
+                  <Calendar className="w-3.5 h-3.5 text-matcha-600 shrink-0" />
+                  <span className="text-[var(--text-muted)] font-semibold shrink-0">Từ:</span>
                   <input
                     type="date"
                     value={prodFrom}
                     onChange={(e) => setProdFrom(e.target.value)}
-                    className="bg-transparent font-bold focus:outline-none"
+                    className="bg-transparent font-bold focus:outline-none min-w-0 text-xs"
                   />
                 </div>
 
-                <div className="flex items-center gap-1.5 bg-[var(--bg-subtle)] px-3 py-1.5 rounded-xl border border-[var(--border-color)]">
-                  <Calendar className="w-3.5 h-3.5 text-matcha-600" />
-                  <span className="text-[var(--text-muted)] font-semibold">Đến:</span>
+                <div className="flex items-center gap-1.5 bg-[var(--bg-subtle)] px-3 py-1.5 rounded-xl border border-[var(--border-color)] min-w-0">
+                  <Calendar className="w-3.5 h-3.5 text-matcha-600 shrink-0" />
+                  <span className="text-[var(--text-muted)] font-semibold shrink-0">Đến:</span>
                   <input
                     type="date"
                     value={prodTo}
                     onChange={(e) => setProdTo(e.target.value)}
-                    className="bg-transparent font-bold focus:outline-none"
+                    className="bg-transparent font-bold focus:outline-none min-w-0 text-xs"
                   />
                 </div>
 
@@ -647,7 +651,7 @@ export default function DashboardPage() {
                   <select
                     value={prodStaffId}
                     onChange={(e) => setProdStaffId(e.target.value)}
-                    className="px-3 py-2 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-color)] font-bold"
+                    className="w-full sm:w-auto min-w-0 max-w-full sm:max-w-[200px] truncate px-3 py-2 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-color)] font-bold text-xs"
                   >
                     <option value="ALL">Tất cả nhân viên</option>
                     {staffList.map((s) => (

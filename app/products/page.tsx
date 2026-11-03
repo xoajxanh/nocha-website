@@ -265,7 +265,7 @@ export default function ProductsPage() {
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         <Navbar user={user} />
 
-        <main className="p-4 sm:p-6 lg:p-8 flex-1 overflow-y-auto space-y-6">
+        <main className="p-4 sm:p-6 lg:p-8 flex-1 overflow-y-auto overflow-x-hidden space-y-6">
           {toast && (
             <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
           )}
@@ -336,11 +336,11 @@ export default function ProductsPage() {
                     className="nocha-card overflow-hidden flex flex-col justify-between group"
                   >
                     <div>
-                      <div className="aspect-square bg-[#f8f5ec] dark:bg-[#17261b] relative overflow-hidden">
+                      <div className="h-48 bg-[#fbf8f1] dark:bg-[#17261b] relative overflow-hidden flex items-center justify-center p-4">
                         <img
                           src={prod.imageUrl || '/images/products/matcha-latte.jpg'}
                           alt={prod.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                          className="max-h-full max-w-[75%] w-auto h-auto object-contain rounded-xl group-hover:scale-105 transition duration-300"
                         />
                         <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-[10px] font-bold bg-matcha-800/90 text-white">
                           {prod.category?.name}

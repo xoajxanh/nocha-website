@@ -56,26 +56,26 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col overflow-x-hidden w-full max-w-full">
       {/* Top Header */}
-      <header className="sticky top-0 z-50 backdrop-blur-md bg-[var(--bg-main)]/90 border-b border-[var(--border-color)]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-3">
-          <Link href="/" className="flex items-center gap-3 group">
+      <header className="sticky top-0 z-50 backdrop-blur-md bg-[var(--bg-main)]/90 border-b border-[var(--border-color)] w-full">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2">
+          <Link href="/" className="flex items-center gap-2 sm:gap-3 group min-w-0">
             <img
               src="/images/logo.png"
               alt="Matcha NOCHA Logo"
-              className="w-12 h-12 rounded-full object-contain shadow-md group-hover:scale-105 transition shrink-0"
+              className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-contain shadow-md group-hover:scale-105 transition shrink-0"
             />
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className="font-black text-2xl tracking-wider text-matcha-700 dark:text-matcha-400">
+                <span className="font-black text-lg sm:text-2xl tracking-wider text-matcha-700 dark:text-matcha-400 leading-none">
                   NOCHA
                 </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-matcha-100 dark:bg-matcha-900 text-matcha-700 dark:text-matcha-300 font-bold border border-matcha-300 dark:border-matcha-700">
+                <span className="hidden sm:inline-block text-[10px] px-2 py-0.5 rounded-full bg-matcha-100 dark:bg-matcha-900 text-matcha-700 dark:text-matcha-300 font-bold border border-matcha-300 dark:border-matcha-700">
                   FRESH
                 </span>
               </div>
-              <span className="block text-xs font-semibold tracking-widest text-[var(--text-muted)]">
+              <span className="block text-[10px] sm:text-xs font-semibold tracking-wider text-[var(--text-muted)] truncate">
                 Matcha &amp; Coffee
               </span>
             </div>
@@ -100,31 +100,33 @@ export default function HomePage() {
             </a>
           </nav>
 
-          <div className="flex items-center gap-2 sm:gap-2.5">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             <ThemeToggleButton />
 
             <Link
               href="/order"
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl matcha-gradient-btn font-black text-xs sm:text-sm shadow-md"
+              className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl matcha-gradient-btn font-black text-xs sm:text-sm shadow-md whitespace-nowrap"
             >
-              <ShoppingBag className="w-4 h-4" />
+              <ShoppingBag className="w-4 h-4 shrink-0" />
               <span>ORDER NGAY</span>
             </Link>
 
             {user ? (
               <Link
                 href="/dashboard"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-[var(--bg-card)] hover:bg-[var(--bg-subtle)] border border-[var(--border-color)] font-bold text-xs sm:text-sm"
+                className="inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3.5 py-2 sm:py-2.5 rounded-xl bg-[var(--bg-card)] hover:bg-[var(--bg-subtle)] border border-[var(--border-color)] font-bold text-xs sm:text-sm"
+                title="Quản Trị"
               >
-                <LayoutDashboard className="w-4 h-4 text-matcha-600" />
+                <LayoutDashboard className="w-4 h-4 text-matcha-600 shrink-0" />
                 <span className="hidden sm:inline">Quản Trị</span>
               </Link>
             ) : (
               <Link
                 href="/login"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-[var(--bg-card)] hover:bg-[var(--bg-subtle)] border border-[var(--border-color)] font-bold text-xs sm:text-sm"
+                className="inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3.5 py-2 sm:py-2.5 rounded-xl bg-[var(--bg-card)] hover:bg-[var(--bg-subtle)] border border-[var(--border-color)] font-bold text-xs sm:text-sm"
+                title="Đăng Nhập"
               >
-                <LogIn className="w-4 h-4 text-matcha-600" />
+                <LogIn className="w-4 h-4 text-matcha-600 shrink-0" />
                 <span className="hidden sm:inline">Đăng Nhập</span>
               </Link>
             )}
@@ -133,12 +135,12 @@ export default function HomePage() {
       </header>
 
       {/* Hero Banner */}
-      <section className="relative overflow-hidden py-12 sm:py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-          <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-matcha-100 dark:bg-matcha-900/60 border border-matcha-300 dark:border-matcha-700 text-matcha-700 dark:text-matcha-300 text-xs font-bold tracking-wider uppercase">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>GOOD MATCHA BRIGHTER DAYS • PURE MATCHA REAL HAPPINESS</span>
+      <section className="relative overflow-hidden py-8 sm:py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
+          <div className="lg:col-span-7 min-w-0 space-y-5 sm:space-y-6 text-center lg:text-left">
+            <div className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-full bg-matcha-100 dark:bg-matcha-900/60 border border-matcha-300 dark:border-matcha-700 text-matcha-700 dark:text-matcha-300 text-[10px] sm:text-xs font-bold tracking-wider uppercase max-w-full">
+              <Sparkles className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">GOOD MATCHA BRIGHTER DAYS • PURE MATCHA</span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-[var(--text-main)] leading-tight">
@@ -246,11 +248,11 @@ export default function HomePage() {
                     key={i}
                     className="rounded-2xl bg-[var(--bg-subtle)] p-3 text-center border border-[var(--border-color)] hover:border-matcha-500 hover:shadow-md transition group"
                   >
-                    <div className="aspect-square rounded-xl overflow-hidden bg-[#f8f5ec] mb-2.5">
+                    <div className="h-36 sm:h-40 rounded-xl overflow-hidden bg-[#fbf8f1] mb-2.5 flex items-center justify-center p-2.5">
                       <img
                         src={item.img}
                         alt={item.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                        className="max-h-full max-w-[82%] w-auto h-auto object-contain rounded-lg group-hover:scale-105 transition duration-300"
                       />
                     </div>
                     <div className="font-extrabold text-xs sm:text-sm line-clamp-1">
@@ -347,11 +349,11 @@ export default function HomePage() {
                         className="nocha-card overflow-hidden flex flex-col justify-between group hover:shadow-lg transition duration-200"
                       >
                         <div>
-                          <div className="aspect-square bg-[#f9f6ed] dark:bg-[#17261b] overflow-hidden relative">
+                          <div className="h-48 bg-[#fbf8f1] dark:bg-[#17261b] overflow-hidden relative flex items-center justify-center p-4">
                             <img
                               src={prod.imageUrl || '/images/products/matcha-latte.jpg'}
                               alt={prod.name}
-                              className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                              className="max-h-full max-w-[75%] w-auto h-auto object-contain rounded-xl group-hover:scale-105 transition duration-300"
                             />
                             <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-matcha-700/90 text-white backdrop-blur-sm">
                               {cat.name}

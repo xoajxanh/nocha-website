@@ -222,7 +222,7 @@ export default function UsersPage() {
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         <Navbar user={currentUser} />
 
-        <main className="p-4 sm:p-6 lg:p-8 flex-1 overflow-y-auto space-y-6">
+        <main className="p-4 sm:p-6 lg:p-8 flex-1 overflow-y-auto overflow-x-hidden space-y-6">
           {toast && (
             <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
           )}

@@ -18,6 +18,9 @@ import {
   Sparkles,
   Coffee,
   Clock,
+  Copy,
+  ExternalLink,
+  Check,
   X,
 } from 'lucide-react';
 import { ThemeToggleButton } from '@/components/ThemeProvider';
@@ -80,6 +83,20 @@ export default function GuestOrderPage() {
 
   // Completed Order Receipt State
   const [submittedOrder, setSubmittedOrder] = useState<any | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  const getOrderTrackingUrl = (orderId: string) => {
+    if (typeof window === 'undefined') return `/order/${orderId}`;
+    return `${window.location.origin}/order/${orderId}`;
+  };
+
+  const handleCopyOrderLink = (orderId: string) => {
+    const url = getOrderTrackingUrl(orderId);
+    navigator.clipboard.writeText(url);
+    setCopiedLink(true);
+    setToast({ message: 'Đã sao chép link xem lại đơn hàng!', type: 'success' });
+    setTimeout(() => setCopiedLink(false), 2500);
+  };
 
   const parseJsonSafe = (str: string, fallback: any) => {
     try {
@@ -234,40 +251,40 @@ export default function GuestOrderPage() {
       : allProducts.filter((p) => p.categoryId === activeCategoryId);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col overflow-x-hidden w-full max-w-full">
       {toast && (
         <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
       )}
 
       {/* Friendly Storefront Header */}
-      <header className="sticky top-0 z-40 backdrop-blur-md bg-[var(--bg-main)]/90 border-b border-[var(--border-color)] h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <header className="sticky top-0 z-40 backdrop-blur-md bg-[var(--bg-main)]/90 border-b border-[var(--border-color)] h-16 px-3 sm:px-6 lg:px-8 flex items-center justify-between gap-2 w-full">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl nocha-card text-xs font-bold hover:opacity-80"
+            className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl nocha-card text-xs font-bold hover:opacity-80 shrink-0"
           >
             <ArrowLeft className="w-4 h-4 text-matcha-600" />
             <span className="hidden sm:inline">Về Trang Chủ</span>
           </Link>
 
-          <Link href="/" className="flex items-center gap-2.5">
+          <Link href="/" className="flex items-center gap-2 min-w-0">
             <img
               src="/images/logo.png"
               alt="Matcha NOCHA Logo"
-              className="w-10 h-10 rounded-full object-contain shadow-sm shrink-0"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-contain shadow-sm shrink-0"
             />
-            <div>
-              <span className="font-black text-base sm:text-lg tracking-wider text-matcha-700 dark:text-matcha-400 leading-none block">
+            <div className="min-w-0">
+              <span className="font-black text-sm sm:text-lg tracking-wider text-matcha-700 dark:text-matcha-400 leading-none block truncate">
                 NOCHA ORDER
               </span>
-              <span className="text-[10px] font-semibold text-[var(--text-muted)]">
+              <span className="text-[10px] font-semibold text-[var(--text-muted)] block truncate">
                 Thanh Mát Từ Thiên Nhiên
               </span>
             </div>
           </Link>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
           <ThemeToggleButton />
 
           <a
@@ -280,16 +297,16 @@ export default function GuestOrderPage() {
 
           <a
             href="#checkout-box"
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl matcha-gradient-btn text-white text-xs font-black shadow-md"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl matcha-gradient-btn text-white text-xs font-black shadow-md whitespace-nowrap"
           >
-            <ShoppingBag className="w-4 h-4" />
+            <ShoppingBag className="w-4 h-4 shrink-0" />
             <span>{totalCups} cốc</span>
             <span className="hidden sm:inline">• {totalAmount.toLocaleString('vi-VN')}đ</span>
           </a>
         </div>
       </header>
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8 overflow-x-hidden">
         {/* ================================================================= */}
         {/* ORDER SUCCESS CONFIRMATION CARD (WHEN GUEST FINISHES ORDERING)    */}
         {/* ================================================================= */}
@@ -364,7 +381,60 @@ export default function GuestOrderPage() {
               </div>
             </div>
 
+            {/* Ô TEXT LINK XEM LẠI ĐƠN & NÚT COPY */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-matcha-50 dark:bg-matcha-950/60 border-2 border-matcha-300 dark:border-matcha-700 text-left space-y-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <label className="text-xs font-extrabold text-matcha-800 dark:text-matcha-300">
+                  🔗 Link theo dõi &amp; xem lại đơn hàng của bạn:
+                </label>
+                <Link
+                  href={`/order/${submittedOrder.id}`}
+                  className="inline-flex items-center gap-1 text-xs font-bold text-matcha-600 dark:text-matcha-400 hover:underline"
+                >
+                  <span>Mở trang đơn</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={getOrderTrackingUrl(submittedOrder.id)}
+                  onFocus={(e) => e.currentTarget.select()}
+                  className="flex-1 min-w-0 px-3.5 py-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-color)] text-xs font-mono font-semibold text-[var(--text-main)] focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleCopyOrderLink(submittedOrder.id)}
+                  className="px-4 py-2.5 rounded-xl matcha-gradient-btn text-white text-xs font-black flex items-center gap-1.5 shrink-0 shadow-sm"
+                >
+                  {copiedLink ? (
+                    <>
+                      <Check className="w-4 h-4" />
+                      <span>Đã Copy</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      <span>Copy Link</span>
+                    </>
+                  )}
+                </button>
+              </div>
+              <p className="text-[11px] text-[var(--text-muted)]">
+                Bạn hãy lưu lại link này để xem trạng thái xác nhận, tiến độ pha chế &amp; giao hàng bất kỳ lúc nào nhé!
+              </p>
+            </div>
+
             <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+              <Link
+                href={`/order/${submittedOrder.id}`}
+                className="px-5 py-3 rounded-xl bg-[var(--bg-subtle)] border border-matcha-500 text-matcha-700 dark:text-matcha-300 font-extrabold text-xs sm:text-sm flex items-center gap-2"
+              >
+                <ExternalLink className="w-4 h-4" />
+                <span>Xem Trang Đơn Hàng</span>
+              </Link>
               <button
                 type="button"
                 onClick={() => setSubmittedOrder(null)}
@@ -384,10 +454,10 @@ export default function GuestOrderPage() {
         ) : (
           <>
             {/* Friendly Hero Banner */}
-            <div className="rounded-3xl p-6 sm:p-8 bg-gradient-to-r from-matcha-700 via-matcha-600 to-matcha-500 text-white shadow-lg flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="space-y-2 text-center md:text-left">
+            <div className="rounded-3xl p-5 sm:p-8 bg-gradient-to-r from-matcha-700 via-matcha-600 to-matcha-500 text-white shadow-lg flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="space-y-2 text-center md:text-left min-w-0">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 backdrop-blur-sm text-xs font-bold uppercase tracking-wider">
-                  <Sparkles className="w-3.5 h-3.5" />
+                  <Sparkles className="w-3.5 h-3.5 shrink-0" />
                   <span>NOCHA — Matcha &amp; Coffee Online Order</span>
                 </div>
                 <h1 className="text-2xl sm:text-3xl font-black leading-tight">
@@ -399,7 +469,7 @@ export default function GuestOrderPage() {
                 </p>
               </div>
 
-              <div className="bg-white/15 backdrop-blur-md rounded-2xl p-4 border border-white/20 text-xs space-y-1.5 shrink-0">
+              <div className="bg-white/15 backdrop-blur-md rounded-2xl p-4 border border-white/20 text-xs space-y-1.5 shrink-0 w-full md:w-auto">
                 <div className="font-extrabold text-sm flex items-center gap-1.5">
                   <MapPin className="w-4 h-4" /> Tòa S2 Goldmark City
                 </div>
@@ -411,9 +481,9 @@ export default function GuestOrderPage() {
             </div>
 
             {/* Storefront Grid: Left 7 cols Menu | Right 5 cols Cart & Checkout */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
               {/* LEFT: MENU SELECTION */}
-              <div className="lg:col-span-7 xl:col-span-8 space-y-5">
+              <div className="lg:col-span-7 xl:col-span-8 min-w-0 space-y-5">
                 {/* Category Tabs */}
                 <div className="flex items-center gap-2 overflow-x-auto pb-1">
                   <button
@@ -456,11 +526,11 @@ export default function GuestOrderPage() {
                         className="nocha-card overflow-hidden flex flex-col justify-between cursor-pointer group hover:border-matcha-500 hover:shadow-xl transition duration-200"
                       >
                         <div>
-                          <div className="aspect-square bg-[#f8f5ec] dark:bg-[#17261b] relative overflow-hidden">
+                          <div className="h-48 bg-[#fbf8f1] dark:bg-[#17261b] relative overflow-hidden flex items-center justify-center p-4">
                             <img
                               src={prod.imageUrl || '/images/products/matcha-latte.jpg'}
                               alt={prod.name}
-                              className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                              className="max-h-full max-w-[75%] w-auto h-auto object-contain rounded-xl group-hover:scale-105 transition duration-300"
                             />
                             <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-matcha-700/90 text-white backdrop-blur-sm">
                               {prod.categoryName}
@@ -504,7 +574,7 @@ export default function GuestOrderPage() {
               </div>
 
               {/* RIGHT: FRIENDLY CART & DELIVERY CHECKOUT CARD */}
-              <div id="checkout-box" className="lg:col-span-5 xl:col-span-4">
+              <div id="checkout-box" className="lg:col-span-5 xl:col-span-4 min-w-0">
                 <form
                   onSubmit={handlePlaceGuestOrder}
                   className="nocha-card p-5 sm:p-6 space-y-5 border-2 border-matcha-300 dark:border-matcha-700 shadow-lg sticky top-20"

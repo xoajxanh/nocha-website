@@ -29,6 +29,8 @@ import {
   ChevronRight,
   X,
   PhoneIncoming,
+  Copy,
+  Edit3,
 } from 'lucide-react';
 
 const PAGE_LIMIT = 20;
@@ -613,15 +615,28 @@ export default function OrdersPage() {
 
                           {/* Bước 1: Đã tạo đơn (CREATED) -> Nút ĐI ĐƠN */}
                           {order.status === 'CREATED' && (
-                            <button
-                              type="button"
-                              disabled={updatingId === order.id}
-                              onClick={() => handleTransitionStatus(order, 'SHIPPING')}
-                              className="px-3.5 py-1.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-black text-xs shadow-sm flex items-center gap-1.5 transition"
-                            >
-                              <Truck className="w-3.5 h-3.5" />
-                              <span>ĐI ĐƠN</span>
-                            </button>
+                            <>
+                              <button
+                                type="button"
+                                disabled={updatingId === order.id}
+                                onClick={() => handleTransitionStatus(order, 'SHIPPING')}
+                                className="px-3.5 py-1.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-black text-xs shadow-sm flex items-center gap-1.5 transition"
+                              >
+                                <Truck className="w-3.5 h-3.5" />
+                                <span>ĐI ĐƠN</span>
+                              </button>
+                              {user.role === 'ADMIN' && (
+                                <button
+                                  type="button"
+                                  disabled={updatingId === order.id}
+                                  onClick={() => handleTransitionStatus(order, 'CANCELLED')}
+                                  className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-black text-xs shadow-sm flex items-center gap-1 transition"
+                                >
+                                  <XCircle className="w-3.5 h-3.5" />
+                                  <span>HỦY</span>
+                                </button>
+                              )}
+                            </>
                           )}
 
                           {/* Bước 2: Đang vận chuyển (SHIPPING) -> Nút ĐÃ NHẬN TIỀN hoặc HOÀN ĐƠN */}
@@ -648,15 +663,43 @@ export default function OrdersPage() {
                             </>
                           )}
 
+                          {/* Nút Copy Link xem đơn gửi cho khách */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const link = `${window.location.origin}/order/${order.id}`;
+                              navigator.clipboard.writeText(link);
+                              setToast({
+                                message: `Đã copy link xem đơn #${order.orderCode}!`,
+                                type: 'success',
+                              });
+                            }}
+                            className="px-2.5 py-1.5 rounded-xl bg-[var(--bg-subtle)] hover:opacity-80 border border-[var(--border-color)] text-xs font-bold flex items-center gap-1 text-[var(--text-main)]"
+                            title="Copy link public xem đơn gửi cho khách"
+                          >
+                            <Copy className="w-3.5 h-3.5 text-matcha-600" />
+                            <span className="hidden sm:inline">Link đơn</span>
+                          </button>
+
                           {user.role === 'ADMIN' && (
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteOrder(order.id, order.orderCode)}
-                              className="p-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-500 transition"
-                              title="Xóa đơn hàng (Admin)"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            <>
+                              <Link
+                                href={`/order/${order.id}?edit=1`}
+                                className="px-2.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-700 dark:text-amber-300 text-xs font-extrabold flex items-center gap-1 transition"
+                                title="Sửa đơn hàng & sửa từng món trong đơn (Admin)"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                                <span className="hidden sm:inline">Sửa đơn</span>
+                              </Link>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteOrder(order.id, order.orderCode)}
+                                className="p-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-500 transition"
+                                title="Xóa đơn hàng (Admin)"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </>
                           )}
 
                           <button
