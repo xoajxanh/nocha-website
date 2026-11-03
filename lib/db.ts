@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { hashPassword, getSessionUser, UserSession } from './auth';
 import { NextRequest } from 'next/server';
+import crypto from 'crypto';
 
 const PRISMA_SCHEMA_VERSION = 'v2_guest_pending';
 const globalForPrisma = global as unknown as {
@@ -470,5 +471,173 @@ export async function getUrgent1HourOrderIds(
     return [];
   }
 }
+
+let inventoryTablesReady = false;
+
+export async function ensureInventoryTables() {
+  if (inventoryTablesReady) return;
+  try {
+    await prisma.$executeRawUnsafe(`
+      IF OBJECT_ID('dbo.InventoryCategory', 'U') IS NULL
+      BEGIN
+        CREATE TABLE [dbo].[InventoryCategory] (
+          [id] NVARCHAR(1000) NOT NULL PRIMARY KEY,
+          [name] NVARCHAR(255) NOT NULL,
+          [description] NVARCHAR(MAX) NULL,
+          [sortOrder] INT NOT NULL DEFAULT 0,
+          [isActive] BIT NOT NULL DEFAULT 1,
+          [isDeleted] BIT NOT NULL DEFAULT 0,
+          [createdAt] DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+          [updatedAt] DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+        );
+      END
+    `);
+
+    await prisma.$executeRawUnsafe(`
+      IF OBJECT_ID('dbo.InventoryItem', 'U') IS NULL
+      BEGIN
+        CREATE TABLE [dbo].[InventoryItem] (
+          [id] NVARCHAR(1000) NOT NULL PRIMARY KEY,
+          [categoryId] NVARCHAR(1000) NOT NULL,
+          [name] NVARCHAR(255) NOT NULL,
+          [unit] NVARCHAR(100) NOT NULL DEFAULT N'cái',
+          [referencePrice] FLOAT NOT NULL DEFAULT 0,
+          [note] NVARCHAR(MAX) NULL,
+          [isActive] BIT NOT NULL DEFAULT 1,
+          [isDeleted] BIT NOT NULL DEFAULT 0,
+          [createdAt] DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+          [updatedAt] DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+        );
+      END
+    `);
+
+    await prisma.$executeRawUnsafe(`
+      IF OBJECT_ID('dbo.InventoryEntry', 'U') IS NULL
+      BEGIN
+        CREATE TABLE [dbo].[InventoryEntry] (
+          [id] NVARCHAR(1000) NOT NULL PRIMARY KEY,
+          [entryCode] NVARCHAR(100) NOT NULL,
+          [itemId] NVARCHAR(1000) NOT NULL,
+          [itemName] NVARCHAR(255) NOT NULL,
+          [categoryId] NVARCHAR(1000) NOT NULL,
+          [categoryName] NVARCHAR(255) NOT NULL,
+          [unit] NVARCHAR(100) NOT NULL,
+          [unitPrice] FLOAT NOT NULL DEFAULT 0,
+          [quantity] FLOAT NOT NULL DEFAULT 1,
+          [calculatedAmount] FLOAT NOT NULL DEFAULT 0,
+          [adjustedAmount] FLOAT NOT NULL DEFAULT 0,
+          [entryDate] DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+          [note] NVARCHAR(MAX) NULL,
+          [createdById] NVARCHAR(1000) NULL,
+          [createdByName] NVARCHAR(255) NULL,
+          [createdAt] DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+          [updatedAt] DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+        );
+      END
+    `);
+
+    // Seed 4 danh mục kho mặc định nếu bảng trống
+    const catCountRes = await prisma.$queryRaw<Array<{ cnt: number }>>`
+      SELECT COUNT(*) AS cnt FROM [dbo].[InventoryCategory]
+    `;
+    const catCount = Number(catCountRes?.[0]?.cnt || 0);
+
+    if (catCount === 0) {
+      const catNguyenLieuId = crypto.randomUUID();
+      const catDoDungId = crypto.randomUUID();
+      const catDichVuId = crypto.randomUUID();
+      const catThietBiId = crypto.randomUUID();
+
+      await prisma.$executeRaw`
+        INSERT INTO [dbo].[InventoryCategory] ([id], [name], [description], [sortOrder], [isActive], [isDeleted])
+        VALUES
+          (${catNguyenLieuId}, N'Nguyên liệu', N'Bột Matcha, sữa tươi, nước cốt dừa, sốt caramel, đường, đá viên...', 1, 1, 0),
+          (${catDoDungId}, N'Đồ dùng', N'Cốc nhựa 500ml, nắp cầu/phẳng, ống hút, túi đựng, giấy ăn...', 2, 1, 0),
+          (${catDichVuId}, N'Dịch vụ', N'Chi phí sửa chữa, hỏng hóc, vận chuyển, điện nước, chi phí phát sinh...', 3, 1, 0),
+          (${catThietBiId}, N'Thiết bị', N'Chổi Chasen, máy đánh bọt, bình lắc, cân tiểu ly, máy móc pha chế...', 4, 1, 0)
+      `;
+
+      // Seed sẵn các sản phẩm kho mẫu chuẩn quán NOCHA
+      const sampleItems = [
+        {
+          id: crypto.randomUUID(),
+          catId: catNguyenLieuId,
+          name: 'Bột Matcha Uji Nhật Bản',
+          unit: 'gói',
+          price: 250000,
+          note: 'Gói 100g chuyên pha Matcha Latte & Cold Whisk',
+        },
+        {
+          id: crypto.randomUUID(),
+          catId: catNguyenLieuId,
+          name: 'Sữa tươi thanh trùng',
+          unit: 'hộp',
+          price: 38000,
+          note: 'Hộp 1 lít',
+        },
+        {
+          id: crypto.randomUUID(),
+          catId: catNguyenLieuId,
+          name: 'Nước cốt dừa / Kem dừa',
+          unit: 'hộp',
+          price: 45000,
+          note: 'Pha Coco Matcha',
+        },
+        {
+          id: crypto.randomUUID(),
+          catId: catNguyenLieuId,
+          name: 'Sốt Caramel',
+          unit: 'chai',
+          price: 115000,
+          note: 'Chai sốt pha Matcha Latte Caramel',
+        },
+        {
+          id: crypto.randomUUID(),
+          catId: catDoDungId,
+          name: 'Cốc nhựa PP 500ml + Nắp',
+          unit: 'bọc',
+          price: 42000,
+          note: '1 bọc 50 bộ cốc + nắp',
+        },
+        {
+          id: crypto.randomUUID(),
+          catId: catDoDungId,
+          name: 'Ống hút & Túi đựng mang đi',
+          unit: 'bọc',
+          price: 30000,
+          note: 'Bịch ống hút + túi chữ T / túi đơn đôi',
+        },
+        {
+          id: crypto.randomUUID(),
+          catId: catThietBiId,
+          name: 'Chổi tre Chasen đánh Matcha',
+          unit: 'chiếc',
+          price: 160000,
+          note: 'Dụng cụ đánh tan bột Matcha',
+        },
+        {
+          id: crypto.randomUUID(),
+          catId: catDichVuId,
+          name: 'Chi phí sửa chữa / phát sinh',
+          unit: 'lần',
+          price: 100000,
+          note: 'Sửa chữa thiết bị, hỏng hóc, phí phát sinh',
+        },
+      ];
+
+      for (const it of sampleItems) {
+        await prisma.$executeRaw`
+          INSERT INTO [dbo].[InventoryItem] ([id], [categoryId], [name], [unit], [referencePrice], [note], [isActive], [isDeleted])
+          VALUES (${it.id}, ${it.catId}, ${it.name}, ${it.unit}, ${it.price}, ${it.note}, 1, 0)
+        `;
+      }
+    }
+
+    inventoryTablesReady = true;
+  } catch (err) {
+    console.error('Error ensuring inventory tables:', err);
+  }
+}
+
 
 

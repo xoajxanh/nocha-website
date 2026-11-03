@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -14,6 +14,12 @@ import {
   Leaf,
   PhoneCall,
   MapPin,
+  Warehouse,
+  ChevronDown,
+  ChevronRight,
+  PackagePlus,
+  Boxes,
+  Layers,
 } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 
@@ -24,6 +30,8 @@ interface SidebarProps {
 export default function Sidebar({ userRole }: SidebarProps) {
   const pathname = usePathname();
   const { isDesktopSidebarOpen } = useTheme();
+  const isInventoryActive = pathname.startsWith('/inventory');
+  const [isInventoryOpen, setIsInventoryOpen] = useState(true);
 
   const navItems = [
     { label: 'Dashboard Thống Kê', href: '/dashboard', icon: LayoutDashboard },
@@ -37,6 +45,12 @@ export default function Sidebar({ userRole }: SidebarProps) {
         ]
       : []),
     { label: 'Cá Nhân & Mật Khẩu', href: '/profile', icon: User },
+  ];
+
+  const inventorySubItems = [
+    { label: 'Quản lý nhập kho', href: '/inventory', icon: PackagePlus },
+    { label: 'Quản lý sản phẩm', href: '/inventory/items', icon: Boxes },
+    { label: 'Quản lý danh mục', href: '/inventory/categories', icon: Layers },
   ];
 
   if (!isDesktopSidebarOpen) {
@@ -93,6 +107,58 @@ export default function Sidebar({ userRole }: SidebarProps) {
             </Link>
           );
         })}
+
+        {/* Phân hệ Quản Lý Kho (Chỉ dành cho Admin) */}
+        {userRole === 'ADMIN' && (
+          <div className="pt-1 space-y-1">
+            <button
+              type="button"
+              onClick={() => setIsInventoryOpen(!isInventoryOpen)}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+                isInventoryActive
+                  ? 'bg-matcha-100 dark:bg-matcha-900/60 text-matcha-800 dark:text-matcha-200 border border-matcha-300 dark:border-matcha-700'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-subtle)]'
+              }`}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <Warehouse className="w-4 h-4 shrink-0 text-matcha-600 dark:text-matcha-400" />
+                <span className="truncate">Quản Lý Kho</span>
+              </div>
+              {isInventoryOpen ? (
+                <ChevronDown className="w-4 h-4 shrink-0 opacity-70" />
+              ) : (
+                <ChevronRight className="w-4 h-4 shrink-0 opacity-70" />
+              )}
+            </button>
+
+            {isInventoryOpen && (
+              <div className="pl-4 space-y-1 border-l-2 border-matcha-300/60 dark:border-matcha-800 ml-5">
+                {inventorySubItems.map((sub) => {
+                  const SubIcon = sub.icon;
+                  const subActive = pathname === sub.href;
+                  return (
+                    <Link
+                      key={sub.href}
+                      href={sub.href}
+                      className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                        subActive
+                          ? 'matcha-gradient-btn text-white shadow-sm'
+                          : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-subtle)]'
+                      }`}
+                    >
+                      <SubIcon
+                        className={`w-3.5 h-3.5 shrink-0 ${
+                          subActive ? 'text-white' : 'text-matcha-600 dark:text-matcha-400'
+                        }`}
+                      />
+                      <span className="truncate">{sub.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </nav>
 
       {/* Khung địa chỉ cố định ở đáy (bottom của 100vh) */}

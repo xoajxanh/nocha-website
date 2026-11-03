@@ -107,3 +107,58 @@ model OrderItem {
   @@index([productId])
 }
 
+model InventoryCategory {
+  id          String          @id @default(uuid())
+  name        String
+  description String?         @db.NVarChar(Max)
+  sortOrder   Int             @default(0)
+  isActive    Boolean         @default(true)
+  isDeleted   Boolean         @default(false)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  items       InventoryItem[]
+}
+
+model InventoryItem {
+  id             String            @id @default(uuid())
+  categoryId     String
+  category       InventoryCategory @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  name           String
+  unit           String            @default("cái")
+  referencePrice Float             @default(0)
+  note           String?           @db.NVarChar(Max)
+  isActive       Boolean           @default(true)
+  isDeleted      Boolean           @default(false)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  entries        InventoryEntry[]
+
+  @@index([categoryId])
+}
+
+model InventoryEntry {
+  id               String        @id @default(uuid())
+  entryCode        String
+  itemId           String
+  item             InventoryItem @relation(fields: [itemId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  itemName         String
+  categoryId       String
+  categoryName     String
+  unit             String
+  unitPrice        Float         @default(0)
+  quantity         Float         @default(1)
+  calculatedAmount Float         @default(0)
+  adjustedAmount   Float         @default(0)
+  entryDate        DateTime      @default(now())
+  note             String?       @db.NVarChar(Max)
+  createdById      String?
+  createdByName    String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([itemId])
+  @@index([categoryId])
+  @@index([entryDate])
+}
+
+
