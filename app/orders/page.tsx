@@ -180,15 +180,15 @@ export default function OrdersPage() {
   const getCardAccentClass = (status: string) => {
     switch (status) {
       case 'PENDING':
-        return 'border-l-4 border-l-purple-500';
+        return 'border-l-4 border-l-purple-500 dark:border-l-purple-500';
       case 'CREATED':
-        return 'border-l-4 border-l-amber-400';
+        return 'border-l-4 border-l-amber-400 dark:border-l-amber-400';
       case 'SHIPPING':
-        return 'border-l-4 border-l-sky-500';
+        return 'border-l-4 border-l-sky-500 dark:border-l-sky-500';
       case 'COMPLETED':
-        return 'border-l-4 border-l-emerald-500';
+        return 'border-l-4 border-l-emerald-500 dark:border-l-emerald-500';
       case 'CANCELLED':
-        return 'border-l-4 border-l-rose-500 opacity-80';
+        return 'border-l-4 border-l-rose-500 dark:border-l-rose-500 opacity-80';
       default:
         return '';
     }
@@ -385,7 +385,7 @@ export default function OrdersPage() {
                   <div
                     key={order.id}
                     onClick={() => router.push(`/order/${order.id}`)}
-                    className={`nocha-card p-3 sm:px-4 sm:py-3 cursor-pointer hover:border-matcha-500/60 hover:bg-[var(--bg-subtle)] transition space-y-2 ${getCardAccentClass(
+                    className={`nocha-card dark:border-[#838383] p-3 sm:px-4 sm:py-3 cursor-pointer hover:border-matcha-500/60 hover:bg-[var(--bg-subtle)] transition space-y-2 ${getCardAccentClass(
                       order.status
                     )}`}
                   >
@@ -446,7 +446,7 @@ export default function OrdersPage() {
                       )}
 
                       {/* Dòng Tổng thanh toán */}
-                      <div className="flex items-center justify-between pt-1.5 border-t border-[#e5e5e5] dark:border-[#838383]">
+                      <div className="flex items-center justify-between pt-1.5 border-t border-[var(--border-color)]">
                         <span className="text-[11px] font-semibold text-[var(--text-muted)]">
                           Tổng thanh toán ({totalCups} cốc)
                         </span>
@@ -458,7 +458,7 @@ export default function OrdersPage() {
 
                     {/* HÀNG 2: TÓM TẮT GOM THEO MÓN TRONG BILL KÈM ẢNH ĐẠI DIỆN */}
                     {groupedOrderItems.length > 0 && (
-                      <div className="px-2.5 py-1.5 rounded-lg bg-[var(--bg-subtle)] border border-[#e5e5e5] dark:border-[#838383] flex flex-wrap items-center gap-2.5 text-[11px]">
+                      <div className="px-2.5 py-1.5 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-color)] flex flex-wrap items-center gap-2.5 text-[11px]">
                         {groupedOrderItems.map((g, idx) => (
                           <span
                             key={g.key || idx}
@@ -467,7 +467,7 @@ export default function OrdersPage() {
                             <img
                               src={getProductAvatar(g.productImage, g.productName)}
                               alt={g.productName}
-                              className="w-6 h-6 rounded-md object-cover border border-[#e5e5e5] dark:border-[#838383] bg-white shrink-0"
+                              className="w-6 h-6 rounded-md object-cover border border-[var(--border-color)] bg-white shrink-0"
                             />
                             <strong className="font-extrabold text-[var(--text-main)]">
                               {g.totalQty}x {g.productName}
@@ -481,7 +481,7 @@ export default function OrdersPage() {
                     )}
 
                     {/* HÀNG 3: MÃ ĐƠN, TRẠNG THÁI, TIẾN ĐỘ PHA CHẾ & GIỜ TẠO */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 border-t border-[#e5e5e5] dark:border-[#838383] text-[11px]">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 border-t border-[var(--border-color)] text-[11px]">
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span className="font-mono font-bold text-[11px] px-1.5 py-0.5 rounded bg-[var(--bg-subtle)] border border-[var(--border-color)] text-[var(--text-muted)]">
                           #{order.orderCode}

@@ -901,14 +901,14 @@ export default function PublicOrderDetailPage() {
                                 className={`p-2.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] ${
                                   isItemDone
                                     ? 'bg-matcha-500/10 border-matcha-500/30'
-                                    : 'bg-[var(--bg-subtle)] border-[#e5e5e5] dark:border-[#838383]'
+                                    : 'bg-[var(--bg-subtle)] border-[var(--border-color)]'
                                 }`}
                               >
                                 <div className="flex items-center gap-2 min-w-0">
                                   <img
                                     src={getProductAvatar(item.productImage, item.productName)}
                                     alt={item.productName || 'Sản phẩm'}
-                                    className="w-8 h-8 rounded-lg object-cover border border-[#e5e5e5] dark:border-[#838383] bg-white shrink-0"
+                                    className="w-8 h-8 rounded-lg object-cover border border-[var(--border-color)] bg-white shrink-0"
                                   />
                                   <div className="flex flex-wrap items-center gap-1.5 min-w-0">
                                     <span className="font-bold text-xs text-[var(--text-main)]">
@@ -1003,14 +1003,14 @@ export default function PublicOrderDetailPage() {
                                 className={`p-2.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] ${
                                   isGroupDone
                                     ? 'bg-matcha-500/10 border-matcha-500/30'
-                                    : 'bg-[var(--bg-subtle)] border-[#e5e5e5] dark:border-[#838383]'
+                                    : 'bg-[var(--bg-subtle)] border-[var(--border-color)]'
                                 }`}
                               >
                                 <div className="flex items-start gap-2.5 min-w-0">
                                   <img
                                     src={getProductAvatar(group.productImage, group.productName)}
                                     alt={group.productName || 'Sản phẩm'}
-                                    className="w-9 h-9 rounded-lg object-cover border border-[#e5e5e5] dark:border-[#838383] bg-white shrink-0 mt-0.5"
+                                    className="w-9 h-9 rounded-lg object-cover border border-[var(--border-color)] bg-white shrink-0 mt-0.5"
                                   />
                                   <div className="space-y-1 min-w-0">
                                     <div className="flex flex-wrap items-center gap-1.5">
@@ -1268,7 +1268,7 @@ export default function PublicOrderDetailPage() {
                             <img
                               src={getProductAvatar(it.productImage, it.productName)}
                               alt={it.productName || 'Sản phẩm'}
-                              className="w-8 h-8 rounded-lg object-cover border border-[#e5e5e5] dark:border-[#838383] bg-white shrink-0"
+                              className="w-8 h-8 rounded-lg object-cover border border-[var(--border-color)] bg-white shrink-0"
                             />
                             <input
                               type="text"
@@ -1658,7 +1658,7 @@ export default function PublicOrderDetailPage() {
                           <img
                             src={getProductAvatar(group.productImage, group.productName)}
                             alt={group.productName || 'Sản phẩm'}
-                            className="w-10 h-10 rounded-lg object-cover border border-[#e5e5e5] dark:border-[#838383] bg-white shrink-0"
+                            className="w-10 h-10 rounded-lg object-cover border border-[var(--border-color)] bg-white shrink-0"
                           />
 
                           <div className="space-y-0.5 min-w-0">
@@ -1719,7 +1719,7 @@ export default function PublicOrderDetailPage() {
                 </div>
 
                 {/* 4. LINK XEM LẠI ĐƠN NHỎ GỌN Ở CUỐI BILL */}
-                <div className="pt-3 border-t border-[#e5e5e5] dark:border-[#838383] flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                <div className="pt-3 border-t border-[var(--border-color)] flex flex-wrap items-center justify-between gap-2 text-[11px]">
                   <span className="text-[var(--text-muted)] font-medium">
                     🔗 Link theo dõi đơn hàng:
                   </span>

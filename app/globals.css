@@ -7,7 +7,7 @@
     --bg-main: #f6f8f3;
     --bg-card: #ffffff;
     --bg-subtle: #ebf3e8;
-    --border-color: #e5e5e5;
+    --border-color: #cfe2ca;
     --text-main: #142a18;
     --text-muted: #4b6850;
   }
@@ -16,7 +16,7 @@
     --bg-main: #0b130e;
     --bg-card: #121f17;
     --bg-subtle: #192b20;
-    --border-color: #838383;
+    --border-color: #274231;
     --text-main: #f0f9f2;
     --text-muted: #93b59b;
   }
@@ -50,16 +50,18 @@
   }
 }
 
-.nocha-card {
-  background-color: var(--bg-card);
-  border: 1px solid var(--border-color);
-  @apply rounded-2xl shadow-sm transition-colors duration-200;
-}
+@layer components {
+  .nocha-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    @apply rounded-2xl shadow-sm transition-colors duration-200;
+  }
 
-.nocha-panel {
-  background-color: var(--bg-card);
-  border-color: var(--border-color);
-  @apply transition-colors duration-200;
+  .nocha-panel {
+    background-color: var(--bg-card);
+    border-color: var(--border-color);
+    @apply transition-colors duration-200;
+  }
 }
 
 .matcha-gradient-btn {
