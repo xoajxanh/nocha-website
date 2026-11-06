@@ -188,6 +188,12 @@ export default function GuestOrderPage() {
     );
   };
 
+  const updateCartNote = (tempId: string, newNote: string) => {
+    setCart((prev) =>
+      prev.map((it) => (it.tempId === tempId ? { ...it, note: newNote } : it))
+    );
+  };
+
   const removeCartItem = (tempId: string) => {
     setCart((prev) => prev.filter((it) => it.tempId !== tempId));
   };
@@ -257,7 +263,7 @@ export default function GuestOrderPage() {
       )}
 
       {/* Friendly Storefront Header */}
-      <header className="sticky top-0 z-40 backdrop-blur-md bg-[var(--bg-main)]/90 border-b border-[var(--border-color)] h-16 px-3 sm:px-6 lg:px-8 flex items-center justify-between gap-2 w-full">
+      <header className="sticky top-0 z-40 backdrop-blur-md bg-[var(--bg-main)] border-b border-[var(--border-color)] h-16 px-3 sm:px-6 lg:px-8 flex items-center justify-between gap-2 w-full">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <Link
             href="/"
@@ -339,6 +345,23 @@ export default function GuestOrderPage() {
                 </span>
               </div>
 
+              <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-2 gap-2">
+                <span className="font-bold text-[var(--text-muted)] shrink-0">Người nhận:</span>
+                <span className="font-bold text-[var(--text-main)] text-right">
+                  {submittedOrder.customerName} • {submittedOrder.customerPhone}
+                </span>
+              </div>
+
+              <div className="flex items-start justify-between border-b border-[var(--border-color)] pb-2 gap-3">
+                <span className="font-bold text-[var(--text-muted)] shrink-0 flex items-center gap-1">
+                  <MapPin className="w-3.5 h-3.5 text-matcha-600 shrink-0" />
+                  <span>Địa chỉ giao hàng:</span>
+                </span>
+                <span className="font-extrabold text-[var(--text-main)] text-right">
+                  {submittedOrder.shippingAddress}
+                </span>
+              </div>
+
               {submittedOrder.expectedDeliveryAt && (
                 <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-2">
                   <span className="font-bold text-[var(--text-muted)]">Giờ nhận dự kiến:</span>
@@ -350,6 +373,15 @@ export default function GuestOrderPage() {
                       day: '2-digit',
                       month: '2-digit',
                     })}
+                  </span>
+                </div>
+              )}
+
+              {submittedOrder.note && (
+                <div className="flex items-start justify-between border-b border-[var(--border-color)] pb-2 gap-3">
+                  <span className="font-bold text-[var(--text-muted)] shrink-0">Lời nhắn đơn:</span>
+                  <span className="font-semibold italic text-amber-600 dark:text-amber-400 text-right">
+                    {submittedOrder.note}
                   </span>
                 </div>
               )}
@@ -549,7 +581,7 @@ export default function GuestOrderPage() {
                           </div>
                         </div>
 
-                        <div className="px-4 pb-4 pt-2 flex items-center justify-between border-t border-[var(--border-color)]/60">
+                        <div className="px-4 pb-4 pt-2 flex items-center justify-between border-t border-[var(--border-color)]">
                           <div>
                             <span className="text-[10px] text-[var(--text-muted)] block font-semibold">
                               Giá chỉ từ
@@ -615,57 +647,65 @@ export default function GuestOrderPage() {
                       </p>
                     </div>
                   ) : (
-                    <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+                    <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
                       {cart.map((item) => (
                         <div
                           key={item.tempId}
-                          className="p-3 rounded-2xl bg-[var(--bg-subtle)] border border-[var(--border-color)] flex items-start justify-between gap-2 text-xs"
+                          className="p-3 rounded-2xl bg-[var(--bg-subtle)] border border-[var(--border-color)] space-y-2 text-xs"
                         >
-                          <div className="space-y-0.5 min-w-0 flex-1">
-                            <div className="font-extrabold text-sm truncate">
-                              {item.productName}
-                            </div>
-                            <div className="text-[11px] text-matcha-700 dark:text-matcha-300 font-semibold">
-                              Size: {item.selectedSize} • Đường: {item.selectedSugar} • Đá:{' '}
-                              {item.selectedIce}
-                            </div>
-                            {item.note && (
-                              <div className="text-[11px] text-amber-600 dark:text-amber-400 italic">
-                                Ghi chú: {item.note}
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="space-y-0.5 min-w-0 flex-1">
+                              <div className="font-extrabold text-sm truncate">
+                                {item.productName}
                               </div>
-                            )}
-                            <div className="font-black text-matcha-600 dark:text-matcha-400 pt-0.5">
-                              {(item.unitPrice * item.quantity).toLocaleString('vi-VN')} đ
+                              <div className="text-[11px] text-matcha-700 dark:text-matcha-300 font-semibold">
+                                Size: {item.selectedSize} • Đường: {item.selectedSugar} • Đá:{' '}
+                                {item.selectedIce}
+                              </div>
+                              <div className="font-black text-matcha-600 dark:text-matcha-400 pt-0.5">
+                                {(item.unitPrice * item.quantity).toLocaleString('vi-VN')} đ
+                              </div>
+                            </div>
+
+                            <div className="flex flex-col items-end gap-1.5 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => removeCartItem(item.tempId)}
+                                className="text-rose-500 hover:opacity-80 p-0.5"
+                                title="Xóa món"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+
+                              <div className="flex items-center bg-[var(--bg-card)] rounded-lg border border-[var(--border-color)]">
+                                <button
+                                  type="button"
+                                  onClick={() => updateCartQty(item.tempId, -1)}
+                                  className="px-2 py-1 font-bold"
+                                >
+                                  -
+                                </button>
+                                <span className="px-2 font-black">{item.quantity}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => updateCartQty(item.tempId, 1)}
+                                  className="px-2 py-1 font-bold"
+                                >
+                                  +
+                                </button>
+                              </div>
                             </div>
                           </div>
 
-                          <div className="flex flex-col items-end gap-1.5 shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => removeCartItem(item.tempId)}
-                              className="text-rose-500 hover:opacity-80 p-0.5"
-                              title="Xóa món"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-
-                            <div className="flex items-center bg-[var(--bg-card)] rounded-lg border border-[var(--border-color)]">
-                              <button
-                                type="button"
-                                onClick={() => updateCartQty(item.tempId, -1)}
-                                className="px-2 py-1 font-bold"
-                              >
-                                -
-                              </button>
-                              <span className="px-2 font-black">{item.quantity}</span>
-                              <button
-                                type="button"
-                                onClick={() => updateCartQty(item.tempId, 1)}
-                                className="px-2 py-1 font-bold"
-                              >
-                                +
-                              </button>
-                            </div>
+                          {/* Cho phép khách chỉnh sửa hoặc thêm ghi chú riêng cho từng món ngay trong giỏ */}
+                          <div>
+                            <input
+                              type="text"
+                              value={item.note}
+                              onChange={(e) => updateCartNote(item.tempId, e.target.value)}
+                              placeholder="📝 Ghi chú món này (VD: tên người uống, để đá riêng...)"
+                              className="w-full px-2.5 py-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-color)] text-[11px] font-medium text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-matcha-500"
+                            />
                           </div>
                         </div>
                       ))}

@@ -5,7 +5,7 @@ import {
   ensureInitialSeed,
   setOrderExpectedDelivery,
   attachExpectedDeliveryToOrders,
-  getUrgent1HourOrderIds,
+  getTodayUnfinishedOrderIds,
 } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
   const skip = (page - 1) * limit;
 
   const isAdmin = session.role === 'ADMIN';
-  const urgentOrderIds = await getUrgent1HourOrderIds(
+  const todayUnfinishedIds = await getTodayUnfinishedOrderIds(
     session.userId,
     isAdmin,
     staffId && staffId !== 'ALL' ? staffId : null
@@ -38,12 +38,12 @@ export async function GET(req: NextRequest) {
   const andConditions: any[] = [];
 
   // Quy tắc hiển thị đơn:
-  // - URGENT_1H (Đơn cần giao trong vòng 1 tiếng sắp tới): Lọc theo danh sách urgentOrderIds đã tính
+  // - TODAY_UNFINISHED (Chưa giao hôm nay): Tất cả đơn chưa hoàn thành cần giao trong ngày hôm nay, xếp theo giờ cần giao gần nhất lên đầu
   // - Đơn PENDING (Khách vãng lai đặt chờ xác nhận): Bất kỳ nhân viên nào hoặc Admin đều nhìn thấy để gọi khách & bấm Nhận Đơn
   // - Các trạng thái khác: Nhân viên nhìn thấy đơn của mình; Admin nhìn thấy tất cả (hoặc lọc theo staffId)
-  if (status === 'URGENT_1H') {
+  if (status === 'TODAY_UNFINISHED') {
     andConditions.push({
-      id: { in: urgentOrderIds.length > 0 ? urgentOrderIds : ['__NONE__'] },
+      id: { in: todayUnfinishedIds.length > 0 ? todayUnfinishedIds : ['__NONE__'] },
     });
   } else if (!isAdmin) {
     if (status === 'PENDING') {
@@ -76,17 +76,61 @@ export async function GET(req: NextRequest) {
     andConditions.push({ createdAt: createdAtFilter });
   }
 
-  // Chỉ tìm kiếm theo Tên người đặt (customerName) hoặc Địa chỉ giao đơn (shippingAddress)
+  // Tìm kiếm theo Tên người đặt (customerName), SĐT hoặc Địa chỉ giao đơn (shippingAddress)
   if (search) {
     andConditions.push({
       OR: [
         { customerName: { contains: search } },
+        { customerPhone: { contains: search } },
         { shippingAddress: { contains: search } },
       ],
     });
   }
 
   const whereClause = andConditions.length > 0 ? { AND: andConditions } : {};
+
+  if (status === 'TODAY_UNFINISHED') {
+    const [allMatchingRaw, pendingCount] = await Promise.all([
+      prisma.order.findMany({
+        where: whereClause,
+        include: {
+          createdBy: {
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+              role: true,
+            },
+          },
+          items: true,
+        },
+      }),
+      prisma.order.count({ where: { status: 'PENDING' } }),
+    ]);
+
+    const allWithExpected = await attachExpectedDeliveryToOrders(allMatchingRaw);
+    allWithExpected.sort((a, b) => {
+      const tA = new Date(a.expectedDeliveryAt || a.createdAt).getTime();
+      const tB = new Date(b.expectedDeliveryAt || b.createdAt).getTime();
+      return tA - tB;
+    });
+
+    const totalItems = allWithExpected.length;
+    const totalPages = Math.max(1, Math.ceil(totalItems / limit));
+    const orders = allWithExpected.slice(skip, skip + limit);
+
+    return NextResponse.json({
+      orders,
+      pendingCount,
+      todayUnfinishedCount: todayUnfinishedIds.length,
+      pagination: {
+        page,
+        limit,
+        totalItems,
+        totalPages,
+      },
+    });
+  }
 
   const [totalItems, rawOrders, pendingCount] = await Promise.all([
     prisma.order.count({ where: whereClause }),
@@ -110,23 +154,13 @@ export async function GET(req: NextRequest) {
     prisma.order.count({ where: { status: 'PENDING' } }),
   ]);
 
-  let orders = await attachExpectedDeliveryToOrders(rawOrders);
-
-  // Nếu đang lọc "Đơn cần giao" (URGENT_1H), sắp xếp ưu tiên đơn cần giao sớm nhất lên đầu (top đơn phải giao)
-  if (status === 'URGENT_1H') {
-    orders = [...orders].sort((a, b) => {
-      const tA = a.expectedDeliveryAt ? new Date(a.expectedDeliveryAt).getTime() : Number.MAX_SAFE_INTEGER;
-      const tB = b.expectedDeliveryAt ? new Date(b.expectedDeliveryAt).getTime() : Number.MAX_SAFE_INTEGER;
-      return tA - tB;
-    });
-  }
-
+  const orders = await attachExpectedDeliveryToOrders(rawOrders);
   const totalPages = Math.max(1, Math.ceil(totalItems / limit));
 
   return NextResponse.json({
     orders,
     pendingCount,
-    urgentCount: urgentOrderIds.length,
+    todayUnfinishedCount: todayUnfinishedIds.length,
     pagination: {
       page,
       limit,

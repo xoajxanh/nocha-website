@@ -425,6 +425,70 @@ export async function attachExpectedDeliveryToOrders<T extends { id: string }>(
   }
 }
 
+export async function getTodayUnfinishedOrderIds(
+  sessionUserId: string,
+  isAdmin: boolean,
+  staffIdFilter?: string | null
+): Promise<string[]> {
+  await ensureExpectedDeliveryColumn();
+  try {
+    const now = new Date();
+    const startOfToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      0,
+      0,
+      0,
+      0
+    );
+    const endOfToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      23,
+      59,
+      59,
+      999
+    );
+
+    const rows = await prisma.$queryRaw<
+      Array<{
+        id: string;
+        status: string;
+        createdById: string | null;
+        targetTime: Date | null;
+      }>
+    >`
+      SELECT
+        [id],
+        [status],
+        [createdById],
+        COALESCE([expectedDeliveryAt], [createdAt]) AS [targetTime]
+      FROM [dbo].[Order]
+      WHERE [status] NOT IN ('COMPLETED', 'CANCELLED')
+        AND COALESCE([expectedDeliveryAt], [createdAt]) >= ${startOfToday}
+        AND COALESCE([expectedDeliveryAt], [createdAt]) <= ${endOfToday}
+      ORDER BY COALESCE([expectedDeliveryAt], [createdAt]) ASC
+    `;
+
+    return rows
+      .filter((r) => {
+        if (isAdmin) {
+          if (staffIdFilter) {
+            return r.createdById === staffIdFilter;
+          }
+          return true;
+        }
+        return r.status === 'PENDING' || r.createdById === sessionUserId;
+      })
+      .map((r) => r.id);
+  } catch (err) {
+    console.error('Error getting today unfinished orders:', err);
+    return [];
+  }
+}
+
 export async function getUrgent1HourOrderIds(
   sessionUserId: string,
   isAdmin: boolean,

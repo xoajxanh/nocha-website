@@ -32,11 +32,11 @@ export default function OrdersPage() {
   const [user, setUser] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [pendingCount, setPendingCount] = useState<number>(0);
-  const [urgentCount, setUrgentCount] = useState<number>(0);
+  const [todayUnfinishedCount, setTodayUnfinishedCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
-  // Server-side Filter & Pagination States
-  const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  // Server-side Filter & Pagination States (Mặc định chọn "Chưa giao hôm nay")
+  const [statusFilter, setStatusFilter] = useState<string>('TODAY_UNFINISHED');
   const [searchInput, setSearchInput] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
   const [page, setPage] = useState<number>(1);
@@ -88,7 +88,7 @@ export default function OrdersPage() {
           const json = await res.json();
           setOrders(json.orders || []);
           setPendingCount(Number(json.pendingCount) || 0);
-          setUrgentCount(Number(json.urgentCount) || 0);
+          setTodayUnfinishedCount(Number(json.todayUnfinishedCount) || 0);
           if (json.pagination) {
             setPagination(json.pagination);
           }
@@ -148,7 +148,7 @@ export default function OrdersPage() {
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-400 text-slate-950">
             <Clock className="w-3 h-3" />
-            <span>Đã tạo đơn</span>
+            <span>Chưa giao</span>
           </span>
         );
       case 'SHIPPING':
@@ -238,10 +238,10 @@ export default function OrdersPage() {
               {[
                 { key: 'ALL', label: 'Tất cả' },
                 {
-                  key: 'URGENT_1H',
-                  label: '🔥 Giao 1h tới',
-                  badge: urgentCount,
-                  badgeColor: 'bg-rose-600 text-white animate-pulse',
+                  key: 'TODAY_UNFINISHED',
+                  label: 'Chưa giao hôm nay',
+                  badge: todayUnfinishedCount,
+                  badgeColor: 'bg-amber-400 text-slate-950',
                 },
                 {
                   key: 'PENDING',
@@ -249,7 +249,7 @@ export default function OrdersPage() {
                   badge: pendingCount,
                   badgeColor: 'bg-purple-600 text-white animate-pulse',
                 },
-                { key: 'CREATED', label: 'Đã tạo đơn' },
+                { key: 'CREATED', label: 'Chưa giao' },
                 { key: 'SHIPPING', label: 'Đang giao' },
                 { key: 'COMPLETED', label: 'Hoàn thành' },
                 { key: 'CANCELLED', label: 'Đã hủy' },
