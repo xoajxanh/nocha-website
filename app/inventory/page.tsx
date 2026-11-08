@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Sidebar from '@/components/Sidebar';
@@ -47,12 +47,16 @@ export default function InventoryEntriesPage() {
   const [selectedItemId, setSelectedItemId] = useState<string>('');
   const [unit, setUnit] = useState<string>('');
   const [unitPrice, setUnitPrice] = useState<number>(0);
-  const [quantity, setQuantity] = useState<number>(1);
+  // Giữ dạng chuỗi để có thể xóa trắng ô số lượng khi đang gõ
+  const [quantityInput, setQuantityInput] = useState<string>('1');
+  const quantity = Number(quantityInput) || 0;
   const [adjustedAmount, setAdjustedAmount] = useState<number>(0);
   const [isAdjustedManually, setIsAdjustedManually] = useState<boolean>(false);
   const [entryDate, setEntryDate] = useState<string>(getTodayDateTimeLocal());
   const [note, setNote] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
+  const [pendingDeleteEntry, setPendingDeleteEntry] = useState<any>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   // Filter states for the entries list
   const [filterCategoryId, setFilterCategoryId] = useState<string>('ALL');
@@ -158,11 +162,13 @@ export default function InventoryEntriesPage() {
     }
   };
 
-  const handleQuantityChange = (newQty: number) => {
-    const cleanQty = Math.max(0.01, newQty);
-    setQuantity(cleanQty);
+  const handleQuantityChange = (raw: string) => {
+    // Cho phép ô trống / số thập phân dở dang (vd "1.") khi đang gõ
+    if (raw !== '' && !/^\d*[.,]?\d*$/.test(raw)) return;
+    const normalized = raw.replace(',', '.');
+    setQuantityInput(normalized);
     if (!isAdjustedManually) {
-      setAdjustedAmount(Math.round((Number(unitPrice) || 0) * cleanQty));
+      setAdjustedAmount(Math.round((Number(unitPrice) || 0) * (Number(normalized) || 0)));
     }
   };
 
@@ -170,7 +176,7 @@ export default function InventoryEntriesPage() {
     setEditingEntryId(null);
     setEntryDate(getTodayDateTimeLocal());
     setNote('');
-    setQuantity(1);
+    setQuantityInput('1');
     const first = items.find((i) => i.id === selectedItemId) || items[0];
     if (first) {
       setSelectedItemId(first.id);
@@ -184,7 +190,7 @@ export default function InventoryEntriesPage() {
     setSelectedItemId(entry.itemId);
     setUnit(entry.unit || 'cái');
     setUnitPrice(Number(entry.unitPrice) || 0);
-    setQuantity(Number(entry.quantity) || 1);
+    setQuantityInput(String(Number(entry.quantity) || 1));
     setAdjustedAmount(Number(entry.adjustedAmount) || 0);
     setIsAdjustedManually(Number(entry.adjustedAmount) !== Number(entry.calculatedAmount));
     const dt = entry.entryDate ? new Date(entry.entryDate) : new Date();
@@ -195,13 +201,18 @@ export default function InventoryEntriesPage() {
       )}:${pad(dt.getMinutes())}`
     );
     setNote(entry.note || '');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // main là vùng cuộn (không phải window) nên phải cuộn tới form bằng ref
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const handleSubmitEntry = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedItemId) {
       setToast({ message: 'Vui lòng chọn sản phẩm kho', type: 'error' });
+      return;
+    }
+    if (!(quantity > 0)) {
+      setToast({ message: 'Vui lòng nhập số lượng lớn hơn 0', type: 'error' });
       return;
     }
 
@@ -248,9 +259,7 @@ export default function InventoryEntriesPage() {
   };
 
   const handleDeleteEntry = async (entry: any) => {
-    if (!confirm(`Xác nhận xóa phiếu nhập kho [${entry.entryCode} - ${entry.itemName}]?`)) {
-      return;
-    }
+    setPendingDeleteEntry(null);
     try {
       const res = await fetch(`/api/inventory/entries/${entry.id}`, {
         method: 'DELETE',
@@ -310,8 +319,9 @@ export default function InventoryEntriesPage() {
           {/* FORM NHẬP KHO (TẠO PHIẾU NHẬP MỚI / SỬA PHIẾU NHẬP)                */}
           {/* ================================================================= */}
           <form
+            ref={formRef}
             onSubmit={handleSubmitEntry}
-            className="nocha-card p-5 sm:p-6 space-y-4 border-2 border-matcha-300 dark:border-matcha-800 shadow-md"
+            className="scroll-mt-4 nocha-card p-5 sm:p-6 space-y-4 border-2 border-matcha-300 dark:border-matcha-800 shadow-md"
           >
             <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
               <div className="flex items-center gap-2">
@@ -433,11 +443,12 @@ export default function InventoryEntriesPage() {
               <div>
                 <label className="block font-bold mb-1">Số Lượng Nhập *</label>
                 <input
-                  type="number"
-                  step="any"
-                  min={0.01}
-                  value={quantity}
-                  onChange={(e) => handleQuantityChange(Number(e.target.value) || 0)}
+                  type="text"
+                  inputMode="decimal"
+                  value={quantityInput}
+                  onChange={(e) => handleQuantityChange(e.target.value)}
+                  onFocus={(e) => e.target.select()}
+                  placeholder="0"
                   className="w-full p-2.5 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-color)] font-black"
                   required
                 />
@@ -610,7 +621,7 @@ export default function InventoryEntriesPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
+                <table className="w-full min-w-[960px] text-left text-xs">
                   <thead className="bg-[var(--bg-subtle)] uppercase text-[var(--text-muted)] border-b border-[var(--border-color)] text-[11px]">
                     <tr>
                       <th className="py-3 px-3.5">Mã Phiếu</th>
@@ -642,11 +653,11 @@ export default function InventoryEntriesPage() {
                               year: 'numeric',
                             })}
                           </td>
-                          <td className="py-3.5 px-3.5 font-extrabold text-sm text-[var(--text-main)]">
+                          <td className="py-3.5 px-3.5 font-extrabold text-sm text-[var(--text-main)] min-w-[160px]">
                             {en.itemName}
                           </td>
                           <td className="py-3.5 px-3.5">
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-matcha-100 dark:bg-matcha-900/60 text-matcha-800 dark:text-matcha-300">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap bg-matcha-100 dark:bg-matcha-900/60 text-matcha-800 dark:text-matcha-300">
                               {en.categoryName}
                             </span>
                           </td>
@@ -675,15 +686,15 @@ export default function InventoryEntriesPage() {
                               <button
                                 type="button"
                                 onClick={() => handleEditEntry(en)}
-                                className="p-2 rounded-xl bg-[var(--bg-subtle)] hover:opacity-80 border border-[var(--border-color)]"
+                                className="p-2.5 rounded-xl touch-manipulation bg-[var(--bg-subtle)] hover:opacity-80 border border-[var(--border-color)]"
                                 title="Sửa phiếu nhập"
                               >
                                 <Edit3 className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 type="button"
-                                onClick={() => handleDeleteEntry(en)}
-                                className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-500"
+                                onClick={() => setPendingDeleteEntry(en)}
+                                className="p-2.5 rounded-xl touch-manipulation bg-rose-500/10 hover:bg-rose-500/20 text-rose-500"
                                 title="Xóa phiếu nhập"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -698,6 +709,43 @@ export default function InventoryEntriesPage() {
               </div>
             )}
           </div>
+
+          {pendingDeleteEntry && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+              onClick={() => setPendingDeleteEntry(null)}
+            >
+              <div
+                className="nocha-card w-full max-w-sm p-5 space-y-4"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h3 className="font-black text-sm flex items-center gap-2 text-rose-600">
+                  <Trash2 className="w-4 h-4" /> Xóa phiếu nhập kho?
+                </h3>
+                <p className="text-xs text-[var(--text-muted)]">
+                  Phiếu{' '}
+                  <strong className="text-[var(--text-main)]">{pendingDeleteEntry.entryCode}</strong>{' '}
+                  — {pendingDeleteEntry.itemName} sẽ bị xóa vĩnh viễn.
+                </p>
+                <div className="flex justify-end gap-2 text-xs font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setPendingDeleteEntry(null)}
+                    className="px-4 py-2.5 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-color)] touch-manipulation"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteEntry(pendingDeleteEntry)}
+                    className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white touch-manipulation"
+                  >
+                    Xóa phiếu
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </main>
       </div>
     </div>

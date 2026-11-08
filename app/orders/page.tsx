@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Sidebar from '@/components/Sidebar';
 import Navbar from '@/components/Navbar';
 import Toast from '@/components/Toast';
+import { NEW_ORDER_EVENT, PENDING_CHANGED_EVENT } from '@/components/OrderNotifier';
 import {
   ShoppingBag,
   PlusCircle,
@@ -106,6 +107,37 @@ export default function OrdersPage() {
     if (!user) return;
     fetchOrdersFromServer(statusFilter, appliedSearch, page);
   }, [user, statusFilter, appliedSearch, page, fetchOrdersFromServer]);
+
+  // Có đơn mới (chuông Navbar báo) -> tự tải lại danh sách đang xem
+  useEffect(() => {
+    if (!user) return;
+    const onNewOrder = () => fetchOrdersFromServer(statusFilter, appliedSearch, page);
+    window.addEventListener(NEW_ORDER_EVENT, onNewOrder);
+    return () => window.removeEventListener(NEW_ORDER_EVENT, onNewOrder);
+  }, [user, statusFilter, appliedSearch, page, fetchOrdersFromServer]);
+
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+
+  // Xác nhận nhanh đơn PENDING -> CREATED ngay tại danh sách
+  const handleConfirmOrder = async (order: any) => {
+    setConfirmingId(order.id);
+    try {
+      const res = await fetch(`/api/orders/${order.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'UPDATE_STATUS', newStatus: 'CREATED' }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Không thể xác nhận đơn');
+      setToast({ message: `Đã xác nhận đơn của ${order.customerName}!`, type: 'success' });
+      fetchOrdersFromServer(statusFilter, appliedSearch, page);
+      window.dispatchEvent(new Event(PENDING_CHANGED_EVENT));
+    } catch (err: any) {
+      setToast({ message: err.message || 'Lỗi xác nhận đơn', type: 'error' });
+    } finally {
+      setConfirmingId(null);
+    }
+  };
 
   const handleStatusTabChange = (newStatus: string) => {
     setStatusFilter(newStatus);
@@ -483,10 +515,6 @@ export default function OrdersPage() {
                     {/* HÀNG 3: MÃ ĐƠN, TRẠNG THÁI, TIẾN ĐỘ PHA CHẾ & GIỜ TẠO */}
                     <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 border-t border-[var(--border-color)] text-[11px]">
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="font-mono font-bold text-[11px] px-1.5 py-0.5 rounded bg-[var(--bg-subtle)] border border-[var(--border-color)] text-[var(--text-muted)]">
-                          #{order.orderCode}
-                        </span>
-
                         {getStatusBadge(order.status)}
 
                         <span
@@ -512,6 +540,23 @@ export default function OrdersPage() {
                           })}
                         </span>
                       </div>
+
+                      {order.status === 'PENDING' && (
+                        <button
+                          type="button"
+                          disabled={confirmingId === order.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleConfirmOrder(order);
+                          }}
+                          className="ml-auto inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-black shadow-sm transition disabled:opacity-60 touch-manipulation"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>
+                            {confirmingId === order.id ? 'Đang xác nhận...' : 'Xác Nhận Đơn'}
+                          </span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 );

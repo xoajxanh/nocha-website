@@ -335,11 +335,11 @@ export default function DashboardPage() {
 
         <main className="p-4 sm:p-6 lg:p-8 space-y-6 flex-1 overflow-y-auto overflow-x-hidden">
           {/* Top Action & Global Filter Bar */}
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 min-w-0">
+          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 sm:gap-4 min-w-0">
             <div className="min-w-0">
               <h1 className="text-xl sm:text-2xl font-black text-matcha-900 dark:text-matcha-100 flex items-center gap-2">
                 <Leaf className="w-6 h-6 text-matcha-600 shrink-0" />
-                <span className="truncate">
+                <span className="min-w-0 break-words xl:truncate">
                   {user.role === 'ADMIN'
                     ? 'Dashboard Quản Trị Doanh Thu & Chi Phí NOCHA'
                     : `Dashboard Cá Nhân — ${user.displayName}`}
@@ -352,7 +352,7 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 w-full lg:w-auto min-w-0">
+            <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 w-full xl:w-auto xl:flex-nowrap min-w-0">
               {user.role === 'ADMIN' && staffList.length > 0 && (
                 <div className="flex items-center justify-between sm:justify-start gap-2 nocha-card px-3 py-2 w-full sm:w-auto min-w-0">
                   <div className="flex items-center gap-1.5 shrink-0">

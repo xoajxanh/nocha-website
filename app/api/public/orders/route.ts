@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma, ensureInitialSeed, setOrderExpectedDelivery } from '@/lib/db';
+import { sendPushToStaff } from '@/lib/push';
 
 export const dynamic = 'force-dynamic';
 
@@ -198,6 +199,18 @@ export async function POST(req: NextRequest) {
       createdOrder.id,
       expectedDeliveryAt || defaultExpected
     );
+
+    // Gửi thông báo đẩy tới nhân viên (không chặn phản hồi cho khách)
+    const totalCups = formattedItems.reduce(
+      (s: number, it: any) => s + (Number(it.quantity) || 0),
+      0
+    );
+    sendPushToStaff({
+      title: '🔔 Đơn mới chờ xác nhận!',
+      body: `${cleanName} • ${totalCups} cốc • ${Number(finalAmount || 0).toLocaleString('vi-VN')}đ\n${cleanAddress}`,
+      url: `/order/${createdOrder.id}`,
+      tag: `order-${createdOrder.id}`,
+    }).catch((err) => console.error('Push new order failed:', err));
 
     return NextResponse.json({
       success: true,

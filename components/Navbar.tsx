@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { UserSession } from '@/lib/auth';
 import { ThemeToggleButton, useTheme } from './ThemeProvider';
+import OrderNotifier from './OrderNotifier';
 
 interface NavbarProps {
   user: UserSession | null;
@@ -123,6 +124,7 @@ export default function Navbar({ user }: NavbarProps) {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+          {user && <OrderNotifier />}
           <ThemeToggleButton />
 
           {user && (

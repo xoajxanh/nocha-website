@@ -13,6 +13,11 @@ export const metadata: Metadata = {
   title: 'NOCHA — Matcha & Coffee | Thanh Mát Từ Thiên Nhiên',
   description:
     'NOCHA Matcha & Coffee - Tòa S2 Goldmark City, 136 Hồ Tùng Mậu, Phú Diễn, HN. Hotline: 0989600992.',
+  appleWebApp: {
+    capable: true,
+    title: 'NOCHA POS',
+    statusBarStyle: 'default',
+  },
   icons: {
     icon: '/favicon.png',
     shortcut: '/favicon.png',

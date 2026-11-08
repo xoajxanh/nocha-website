@@ -87,7 +87,10 @@ export default function InventoryItemsPage() {
   const openCreateModal = () => {
     setEditingItem(null);
     setName('');
-    setCategoryId(categories[0]?.id || '');
+    // Nếu đang lọc theo 1 danh mục (tab active) thì mặc định chọn luôn danh mục đó
+    const activeCat =
+      filterCatId !== 'ALL' && categories.some((c) => c.id === filterCatId) ? filterCatId : '';
+    setCategoryId(activeCat || categories[0]?.id || '');
     setUnit('gói');
     setReferencePrice(0);
     setNote('');
