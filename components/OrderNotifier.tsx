@@ -381,7 +381,7 @@ export default function OrderNotifier() {
         </button>
 
         {open && (
-          <div className="absolute right-0 top-full mt-2 w-[300px] max-w-[calc(100vw-24px)] nocha-card p-3.5 shadow-2xl z-50 space-y-3 text-xs">
+          <div className="fixed left-3 right-3 top-[68px] sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[320px] max-h-[calc(100dvh-80px)] overflow-y-auto nocha-card p-3.5 shadow-2xl z-50 space-y-3 text-xs">
             <div className="flex items-center justify-between">
               <span className="font-black text-sm">Thông báo đơn mới</span>
               <button
@@ -410,11 +410,11 @@ export default function OrderNotifier() {
             {/* A. Âm thanh trong web */}
             <div className="p-2.5 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-color)] space-y-1.5">
               <div className="flex items-center justify-between gap-2">
-                <span className="font-bold flex items-center gap-1.5">
-                  <Volume2 className="w-3.5 h-3.5 text-matcha-600" /> Chuông khi đang mở web
+                <span className="font-bold flex items-center gap-1.5 min-w-0">
+                  <Volume2 className="w-3.5 h-3.5 text-matcha-600 shrink-0" /> Chuông khi đang mở web
                 </span>
                 <span
-                  className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                  className={`shrink-0 whitespace-nowrap px-2 py-0.5 rounded-full text-[10px] leading-4 font-black ${
                     soundOn ? 'bg-matcha-500 text-white' : 'bg-amber-500 text-slate-950'
                   }`}
                 >
@@ -441,11 +441,11 @@ export default function OrderNotifier() {
             {/* B. Web Push */}
             <div className="p-2.5 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-color)] space-y-1.5">
               <div className="flex items-center justify-between gap-2">
-                <span className="font-bold flex items-center gap-1.5">
-                  <Smartphone className="w-3.5 h-3.5 text-matcha-600" /> Thông báo khi tắt web
+                <span className="font-bold flex items-center gap-1.5 min-w-0">
+                  <Smartphone className="w-3.5 h-3.5 text-matcha-600 shrink-0" /> Thông báo khi tắt web
                 </span>
                 <span
-                  className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                  className={`shrink-0 whitespace-nowrap px-2 py-0.5 rounded-full text-[10px] leading-4 font-black ${
                     pushState === 'on'
                       ? 'bg-matcha-500 text-white'
                       : 'bg-amber-500 text-slate-950'
